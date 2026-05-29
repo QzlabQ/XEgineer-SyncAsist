@@ -3,7 +3,8 @@
 set -e
 
 echo "▶ 初始化 Wechatsync submodule..."
-git submodule update --init --recursive
+# 只初始化 Wechatsync 这一层，跳过其内部的私有 submodule
+git submodule update --init Wechatsync
 
 echo "▶ 安装 Wechatsync 依赖..."
 (cd Wechatsync && pnpm install --ignore-scripts)

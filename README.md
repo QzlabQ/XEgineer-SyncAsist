@@ -36,12 +36,12 @@
 ### 一键初始化
 
 ```bash
-git clone --recurse-submodules git@github.com:QzlabQ/XEgineer-SyncAsist.git
+git clone git@github.com:QzlabQ/XEgineer-SyncAsist.git
 cd XEgineer-SyncAsist
 bash setup.sh
 ```
 
-> 如果已经 clone 但没有带 `--recurse-submodules`，运行 `git submodule update --init --recursive` 补充初始化。
+> `setup.sh` 会自动初始化 Wechatsync submodule（只初始化公开部分，跳过其内部私有 submodule）、安装所有依赖并构建 renderer 包。
 
 ### 启动 Web App
 
