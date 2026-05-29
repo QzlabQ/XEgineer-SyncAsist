@@ -1,0 +1,37 @@
+{
+  "manifest_version": 3,
+  "name": "XEgineer",
+  "version": "0.1.0",
+  "description": "多平台内容发布工具",
+  "permissions": [
+    "cookies",
+    "storage",
+    "declarativeNetRequest",
+    "declarativeNetRequestWithHostAccess",
+    "scripting",
+    "tabs"
+  ],
+  "host_permissions": [
+    "http://localhost:3210/*",
+    "https://*.zhihu.com/*",
+    "https://*.bilibili.com/*",
+    "https://*.juejin.cn/*",
+    "https://*.weixin.qq.com/*",
+    "https://*.weibo.com/*",
+    "https://*.xiaohongshu.com/*"
+  ],
+  "background": {
+    "service_worker": "src/background/index.ts",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["http://localhost:3210/*"],
+      "js": ["src/bridge/content-script.ts"],
+      "run_at": "document_start"
+    }
+  ],
+  "action": {
+    "default_title": "XEgineer"
+  }
+}

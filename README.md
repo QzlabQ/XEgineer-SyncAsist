@@ -1,1 +1,188 @@
-# XEgineer-SyncAsist
+# XEgineer — 多平台内容发布工作台
+
+> 写一次，发到所有地方。
+
+内容创作者的一站式发布工具：在所见即所得编辑器中写好文章，自动适配各平台格式，通过浏览器扩展一键同步发布到知乎、B站、掘金等平台。
+
+---
+
+## 功能特性
+
+- **富文本编辑器**：基于 Tiptap，支持标题、加粗、代码块、表格、图片等全部常用格式，体验对标 Notion
+- **多平台实时预览**：编辑时右侧同步展示各平台的实际渲染效果
+- **一键发布**：通过 Chrome 扩展调用各平台 API，使用浏览器已有登录状态，无需额外授权
+- **本地优先**：文章存储在浏览器 IndexedDB，离线可用，账号凭证不经过任何服务器
+- **默认草稿模式**：发布默认保存为草稿，人工确认后再正式发布
+
+**当前支持平台（MVP）**
+
+| 平台 | 预览 | 发布 |
+|------|------|------|
+| 知乎 | ✅ | ✅ |
+| B站专栏 | ✅ | ✅ |
+| 掘金 | ✅ | ✅ |
+
+---
+
+## 快速开始
+
+### 环境要求
+
+- Node.js 20+
+- pnpm（用于初始化 Wechatsync 子模块依赖）
+- yarn 1.x（项目主包管理器）
+- Chrome 浏览器
+
+### 一键初始化
+
+```bash
+git clone --recurse-submodules git@github.com:QzlabQ/XEgineer-SyncAsist.git
+cd XEgineer-SyncAsist
+bash setup.sh
+```
+
+> 如果已经 clone 但没有带 `--recurse-submodules`，运行 `git submodule update --init --recursive` 补充初始化。
+
+### 启动 Web App
+
+```bash
+yarn workspace @xegineer/web dev
+```
+
+访问 [http://localhost:3210](http://localhost:3210)
+
+### 安装 Chrome 扩展
+
+```bash
+# 构建扩展
+yarn workspace @xegineer/extension build
+```
+
+1. 打开 Chrome，访问 `chrome://extensions/`
+2. 开启右上角「开发者模式」
+3. 点击「加载已解压的扩展程序」
+4. 选择项目目录下的 `packages/extension/dist/` 文件夹
+
+### 登录各平台
+
+在浏览器中分别访问并登录知乎、B站、掘金，然后在 XEgineer 设置页面（右上角「设置」）点击「全部刷新」检测登录状态。
+
+---
+
+## 项目结构
+
+```
+XEgineer-SyncAsist/
+├── Wechatsync/              # git submodule — 平台适配器来源
+│   └── packages/core/       # 29+ 平台适配器（知乎、B站、掘金等）
+│
+├── packages/
+│   ├── renderer/            # 平台格式渲染器
+│   │   ├── src/ast/         # ContentAST 类型定义（平台无关内容模型）
+│   │   ├── src/converters/  # Tiptap JSON → ContentAST
+│   │   └── src/platforms/   # 各平台渲染器（知乎/B站/掘金）
+│   │
+│   └── extension/           # Chrome 扩展（Manifest v3）
+│       ├── src/background/  # Service Worker，调用 Wechatsync 适配器
+│       ├── src/bridge/      # Content Script，桥接 Web App ↔ Service Worker
+│       └── src/runtime/     # ExtensionRuntime（实现 Wechatsync RuntimeInterface）
+│
+├── apps/
+│   └── web/                 # Next.js 15 Web App
+│       └── src/
+│           ├── app/         # 页面路由（文章列表、编辑器、设置）
+│           ├── components/  # UI 组件（编辑器、预览、发布面板、侧边栏）
+│           ├── stores/      # Zustand 状态管理
+│           └── lib/         # 工具库（IndexedDB、Extension Bridge）
+│
+├── docx/                    # 产品与架构设计文档
+├── setup.sh                 # 一键初始化脚本
+└── package.json             # Yarn Workspaces 根配置
+```
+
+---
+
+## 架构概览
+
+```
+Web App (localhost:3210)
+    │  编辑内容 → ContentAST → 各平台 Renderer → PlatformPayload
+    │
+    │  postMessage
+    ▼
+Chrome Extension (Content Script)
+    │
+    │  chrome.runtime.sendMessage
+    ▼
+Service Worker (Wechatsync 适配器)
+    │
+    │  fetch + 浏览器 Cookie
+    ▼
+各平台 API（知乎 / B站 / 掘金 ...）
+```
+
+核心设计：**ContentAST 中间层**将编辑器格式与各平台格式解耦。新增平台只需实现一个 Adapter（调用 API）和一个 Renderer（格式转换），两个文件，注册一行。
+
+---
+
+## 扩展新平台
+
+参考 `docx/07-platform-extension-guide.md`，核心步骤：
+
+1. 在 `Wechatsync/packages/core/src/adapters/platforms/` 新增适配器（或复用已有的 29+ 个）
+2. 在 `packages/renderer/src/platforms/` 新增渲染器
+3. 在 `packages/renderer/src/index.ts` 和 `packages/extension/src/background/index.ts` 各注册一行
+
+---
+
+## 开发命令
+
+```bash
+# 启动 Web App 开发服务器
+yarn workspace @xegineer/web dev
+
+# 构建 renderer 包（修改 renderer 后需重新构建）
+yarn workspace @xegineer/renderer build
+
+# 构建 Chrome 扩展（修改 extension 后需重新构建并在 Chrome 刷新扩展）
+yarn workspace @xegineer/extension build
+
+# 类型检查
+yarn workspace @xegineer/web run type-check
+```
+
+---
+
+## 技术栈
+
+| 层次 | 技术 |
+|------|------|
+| 编辑器 | Tiptap v2（ProseMirror） |
+| Web App | Next.js 15 + React 19 + TypeScript |
+| 样式 | Tailwind CSS |
+| 状态管理 | Zustand |
+| 本地存储 | Dexie.js（IndexedDB） |
+| 平台适配 | Wechatsync packages/core（git submodule） |
+| 格式转换 | 自研 ContentAST + PlatformRenderer |
+| 浏览器扩展 | Chrome Manifest v3 + CRXJS |
+
+---
+
+## 文档
+
+详细设计文档见 [`docx/`](./docx/) 目录：
+
+- [产品需求文档](./docx/01-product-requirements.md)
+- [系统架构设计](./docx/02-architecture.md)
+- [ContentAST 设计](./docx/03-content-ast.md)
+- [平台渲染器设计](./docx/04-platform-renderer.md)
+- [扩展桥接层设计](./docx/05-extension-bridge.md)
+- [UI 设计](./docx/06-ui-design.md)
+- [扩展新平台指南](./docx/07-platform-extension-guide.md)
+- [开发路线图](./docx/09-roadmap.md)
+
+---
+
+## License
+
+MIT

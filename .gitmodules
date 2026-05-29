@@ -1,0 +1,3 @@
+[submodule "Wechatsync"]
+	path = Wechatsync
+	url = git@github.com:wechatsync/Wechatsync.git
