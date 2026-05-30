@@ -6,13 +6,12 @@ import { BilibiliAdapter } from '@wechatsync/core/adapters/platforms/bilibili'
 import { JuejinAdapter } from '@wechatsync/core/adapters/platforms/juejin'
 import { WeixinAdapter } from '@wechatsync/core/adapters/platforms/weixin'
 import { CSDNAdapter } from '@wechatsync/core/adapters/platforms/csdn'
+import { XiaohongshuAdapter } from '../adapters/xiaohongshu'
+import { JianshuAdapter } from '../adapters/jianshu'
 import type { BaseAdapter } from '@wechatsync/core/adapters/base'
 import type { Article } from '@wechatsync/core/types'
 
 type AdapterClass = new () => BaseAdapter
-
-// Platforms without a Wechatsync adapter — copy-paste workflow only
-const COPY_PASTE_PLATFORMS = new Set(['xiaohongshu', 'jianshu'])
 
 const ADAPTERS: Record<string, AdapterClass> = {
   zhihu: ZhihuAdapter as unknown as AdapterClass,
@@ -20,6 +19,8 @@ const ADAPTERS: Record<string, AdapterClass> = {
   juejin: JuejinAdapter as unknown as AdapterClass,
   weixin: WeixinAdapter as unknown as AdapterClass,
   csdn: CSDNAdapter as unknown as AdapterClass,
+  xiaohongshu: XiaohongshuAdapter as unknown as AdapterClass,
+  jianshu: JianshuAdapter as unknown as AdapterClass,
 }
 
 const runtime = new ExtensionRuntime()
@@ -68,16 +69,12 @@ async function handleMessage(msg: XEgineerMessage): Promise<XEgineerResponse> {
 
   switch (type) {
     case 'LIST_PLATFORMS': {
-      const adapters = Object.keys(ADAPTERS).map(id => ({ id }))
-      const copyPaste = Array.from(COPY_PASTE_PLATFORMS).map(id => ({ id }))
-      return { requestId, success: true, data: [...adapters, ...copyPaste] }
+      const platforms = Object.keys(ADAPTERS).map(id => ({ id }))
+      return { requestId, success: true, data: platforms }
     }
 
     case 'CHECK_AUTH': {
       const { platformId } = payload as { platformId: string }
-      if (COPY_PASTE_PLATFORMS.has(platformId)) {
-        return { requestId, success: true, data: { platformId, isAuthenticated: true, username: '复制粘贴模式' } }
-      }
       const adapter = await getAdapter(platformId)
       const result = await adapter.checkAuth()
       return {
@@ -94,20 +91,6 @@ async function handleMessage(msg: XEgineerMessage): Promise<XEgineerResponse> {
 
     case 'PUBLISH': {
       const { platformId, article } = payload as { platformId: string; article: Record<string, unknown> }
-
-      if (COPY_PASTE_PLATFORMS.has(platformId)) {
-        const platformNames: Record<string, string> = { xiaohongshu: '小红书', jianshu: '简书' }
-        return {
-          requestId,
-          success: true,
-          data: {
-            platformId,
-            success: true,
-            isDraft: true,
-            message: `${platformNames[platformId] ?? platformId} 暂不支持自动发布，内容已格式化，请手动复制到平台发布`,
-          },
-        }
-      }
 
       const adapter = await getAdapter(platformId)
 
