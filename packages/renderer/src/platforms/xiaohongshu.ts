@@ -16,9 +16,11 @@ export class XiaohongshuRenderer extends BaseRenderer {
     const tags = (config.tags ?? doc.meta.tags ?? []) as string[]
     const tagLine = tags.length > 0 ? '\n\n' + tags.map(t => `#${t}`).join(' ') : ''
 
+    const fullText = body + tagLine
     return {
       title: doc.meta.title,
-      content: body + tagLine,
+      content: fullText,
+      markdownContent: fullText,
       cover: config.cover ?? doc.meta.cover,
       summary: config.summary ?? this.autoSummary(doc),
       tags,
