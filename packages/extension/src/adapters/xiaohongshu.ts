@@ -41,9 +41,9 @@ export class XiaohongshuAdapter extends CodeAdapter {
   async checkAuth(): Promise<AuthResult> {
     return this.withHeaderRules(HEADER_RULES, async () => {
       try {
-        // 先尝试创作者平台接口
+        // Primary: check via main site (most users are logged in here)
         const resp = await this.runtime.fetch(
-          'https://creator.xiaohongshu.com/api/galaxy/creator/home/user/info',
+          'https://www.xiaohongshu.com/api/sns/web/v1/user/selfinfo',
           {
             credentials: 'include',
             headers: { Accept: 'application/json' },
@@ -52,42 +52,44 @@ export class XiaohongshuAdapter extends CodeAdapter {
         if (resp.ok) {
           const data = await resp.json() as {
             success?: boolean
-            code?: number
             data?: {
-              userInfo?: { nickname?: string; userId?: string; imageb?: string }
-              user?: { nickname?: string; userId?: string; image?: string }
+              basic_info?: { nickname?: string; imageb?: string }
+              extra_info?: { fid?: string }
+              user_id?: string
+              nickname?: string
+              avatar?: string
             }
           }
-          const userInfo = data.data?.userInfo ?? data.data?.user
-          if ((data.success || data.code === 0) && userInfo?.userId) {
+          const userId = data.data?.user_id || data.data?.extra_info?.fid
+          if (data.success && userId) {
             return {
               isAuthenticated: true,
-              userId: userInfo.userId,
-              username: userInfo.nickname,
-              avatar: userInfo.imageb ?? (data.data?.user as { image?: string } | undefined)?.image,
+              userId,
+              username: data.data?.nickname ?? data.data?.basic_info?.nickname,
+              avatar: data.data?.avatar ?? data.data?.basic_info?.imageb,
             }
           }
         }
 
-        // 备用：通过 web 端接口检测
-        const webResp = await this.runtime.fetch(
-          'https://www.xiaohongshu.com/api/sns/web/v1/user/selfinfo',
+        // Fallback: creator platform
+        const cResp = await this.runtime.fetch(
+          'https://creator.xiaohongshu.com/web_api/sns/v1/user/me',
           {
             credentials: 'include',
             headers: { Accept: 'application/json' },
           }
         )
-        if (webResp.ok) {
-          const webData = await webResp.json() as {
+        if (cResp.ok) {
+          const cData = await cResp.json() as {
             success?: boolean
-            data?: { basic_info?: { nickname?: string; imageb?: string }; extra_info?: { fid?: string } }
+            data?: { user_id?: string; nickname?: string; avatar?: string }
           }
-          if (webData.success && webData.data?.extra_info?.fid) {
+          if (cData.success && cData.data?.user_id) {
             return {
               isAuthenticated: true,
-              userId: webData.data.extra_info.fid,
-              username: webData.data.basic_info?.nickname,
-              avatar: webData.data.basic_info?.imageb,
+              userId: cData.data.user_id,
+              username: cData.data.nickname,
+              avatar: cData.data.avatar,
             }
           }
         }
