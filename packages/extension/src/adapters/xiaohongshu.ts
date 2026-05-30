@@ -112,11 +112,19 @@ export class XiaohongshuAdapter extends BaseAdapter {
 
           for (const {url, method, body} of attempts) {
             try {
-              const resp = await fetch(url, { method, credentials: 'include', headers: { 'Content-Type': 'application/json' }, body })
-              if (resp.status === 404) continue // try next
-              const text = await resp.text()
-              if (!resp.ok) return { success: false, error: `[${url.split('/')[2]}${new URL(url).pathname}] HTTP ${resp.status}: ${text.slice(0, 150)}` }
-              const data = JSON.parse(text) as { success?: boolean; code?: number; msg?: string; data?: { note_id?: string; id?: string; noteId?: string } }
+              // Use XHR (like Axios) instead of fetch — 406 may be from fetch-specific headers
+              const result = await new Promise<{ok: boolean; status: number; text: string}>((resolve, reject) => {
+                const xhr = new XMLHttpRequest()
+                xhr.open(method, url, true)
+                xhr.withCredentials = true
+                xhr.setRequestHeader('Content-Type', 'application/json')
+                xhr.onload = () => resolve({ ok: xhr.status >= 200 && xhr.status < 300, status: xhr.status, text: xhr.responseText })
+                xhr.onerror = () => reject(new Error('XHR failed'))
+                xhr.send(body)
+              })
+              if (result.status === 404) continue
+              if (!result.ok) return { success: false, error: `[${url.split('/')[2]}${new URL(url).pathname}] HTTP ${result.status}: ${result.text.slice(0, 150)}` }
+              const data = JSON.parse(result.text) as { success?: boolean; code?: number; msg?: string; data?: { note_id?: string; id?: string; noteId?: string } }
               if (data.success || data.code === 0) {
                 const id = data.data?.note_id ?? data.data?.id ?? data.data?.noteId ?? ''
                 return { success: true, noteId: id }
