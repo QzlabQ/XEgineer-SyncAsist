@@ -191,15 +191,6 @@ export const usePublishStore = create<PublishStore>((set, get) => ({
     try {
       const payload = getPayload(platform.id)
 
-      // For Xiaohongshu, copy formatted content to clipboard
-      if (platform.id === 'xiaohongshu' && typeof window !== 'undefined') {
-        const text = (payload as Record<string, unknown>).markdownContent as string
-          || (payload as Record<string, unknown>).content as string || ''
-        if (text) {
-          try { await navigator.clipboard.writeText(text) } catch { /* clipboard unavailable */ }
-        }
-      }
-
       const result = await bridge.publish(platform.id, payload)
       set(s => ({
         platforms: s.platforms.map(p =>
