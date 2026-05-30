@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import { useArticleStore } from '@/stores/article'
+import { usePublishStore } from '@/stores/publish'
 import { TopNav } from '@/components/Layout/TopNav'
 import { Sidebar } from '@/components/Sidebar/Sidebar'
 import { PreviewPanel } from '@/components/Preview/PreviewPanel'
@@ -18,7 +19,8 @@ const RichEditor = dynamic(() => import('@/components/Editor/RichEditor').then(m
 export default function EditorPage() {
   const params = useParams()
   const id = Number(params.id)
-  const { current, loadArticle, updateTitle, updateContent } = useArticleStore()
+  const { current, loadArticle, updateTitle, updateContent, saveNow } = useArticleStore()
+  const { setShowPublishDialog } = usePublishStore()
   const [showPreview, setShowPreview] = useState(true)
 
   useEffect(() => {
@@ -28,6 +30,33 @@ export default function EditorPage() {
   const handleContentChange = useCallback((json: string) => {
     updateContent(json)
   }, [updateContent])
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const mod = e.ctrlKey || e.metaKey
+      if (!mod) return
+
+      if (e.key === 's') {
+        e.preventDefault()
+        void saveNow()
+        return
+      }
+
+      if (e.key === 'p' && e.shiftKey) {
+        e.preventDefault()
+        setShowPublishDialog(true)
+        return
+      }
+
+      if (e.key === '\\') {
+        e.preventDefault()
+        setShowPreview(v => !v)
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [saveNow, setShowPublishDialog])
 
   if (!current) {
     return (

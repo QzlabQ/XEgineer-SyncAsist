@@ -2,18 +2,29 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowUpDown, Plus, FileText, Trash2, History, Search } from 'lucide-react'
+import { ArrowUpDown, Plus, FileText, Trash2, History, Search, AlertTriangle, X } from 'lucide-react'
 import { useArticleStore } from '@/stores/article'
+import { getExtensionBridge } from '@/lib/extension-bridge'
 
 export default function ArticlesPage() {
   const router = useRouter()
   const { articles, loadArticles, createArticle, deleteArticle } = useArticleStore()
   const [query, setQuery] = useState('')
   const [sortBy, setSortBy] = useState<'updated' | 'created' | 'title'>('updated')
+  const [extensionMissing, setExtensionMissing] = useState(false)
+  const [bannerDismissed, setBannerDismissed] = useState(false)
 
   useEffect(() => {
     loadArticles()
+    checkExtension()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const checkExtension = async () => {
+    const bridge = getExtensionBridge()
+    if (!bridge) return
+    const installed = await bridge.isInstalled()
+    if (!installed) setExtensionMissing(true)
+  }
 
   const handleCreate = async () => {
     const id = await createArticle()
@@ -58,6 +69,28 @@ export default function ArticlesPage() {
           </button>
         </div>
       </header>
+
+      {/* Extension missing banner */}
+      {extensionMissing && !bannerDismissed && (
+        <div className="bg-amber-50 border-b border-amber-200 px-6 py-3 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2 text-sm text-amber-800">
+            <AlertTriangle size={15} className="flex-shrink-0 text-amber-500" />
+            <span>未检测到 XEgineer 扩展，发布功能不可用。</span>
+            <button
+              onClick={() => router.push('/setup')}
+              className="underline font-medium hover:text-amber-900"
+            >
+              查看安装指南
+            </button>
+          </div>
+          <button
+            onClick={() => setBannerDismissed(true)}
+            className="p-1 text-amber-500 hover:text-amber-700 rounded flex-shrink-0"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
 
       <main className="max-w-3xl mx-auto px-6 py-8">
         <div className="flex flex-col sm:flex-row gap-3 mb-5">

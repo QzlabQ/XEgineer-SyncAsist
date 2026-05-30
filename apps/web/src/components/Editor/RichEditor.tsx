@@ -1,6 +1,6 @@
 'use client'
 
-import { useEditor, EditorContent } from '@tiptap/react'
+import { useEditor, EditorContent, BubbleMenu } from '@tiptap/react'
 import { useEffect, useCallback, useRef, useState } from 'react'
 import type { Editor } from '@tiptap/core'
 import StarterKit from '@tiptap/starter-kit'
@@ -16,6 +16,7 @@ import TableCell from '@tiptap/extension-table-cell'
 import TableHeader from '@tiptap/extension-table-header'
 import Highlight from '@tiptap/extension-highlight'
 import Typography from '@tiptap/extension-typography'
+import { Bold, Italic, Underline as UnderlineIcon, Strikethrough, Code, Link2, Highlighter } from 'lucide-react'
 import type { EditorView } from '@tiptap/pm/view'
 import { EditorToolbar } from './EditorToolbar'
 
@@ -233,6 +234,34 @@ export function RichEditor({ content, onChange }: RichEditorProps) {
   return (
     <div className="flex flex-col h-full" onKeyDownCapture={handleEditorKeyDown}>
       <EditorToolbar editor={editor} onImageUpload={handleImageUpload} />
+
+      {/* Bubble menu — appears when text is selected */}
+      <BubbleMenu
+        editor={editor}
+        tippyOptions={{ duration: 100, placement: 'top' }}
+        shouldShow={({ editor: e, state }) => {
+          const { selection } = state
+          return !selection.empty && !e.isActive('image') && !e.isActive('codeBlock')
+        }}
+      >
+        <div className="flex items-center gap-0.5 bg-gray-900 rounded-lg px-1.5 py-1 shadow-xl">
+          {bubbleBtn(editor.isActive('bold'), () => editor.chain().focus().toggleBold().run(), <Bold size={13} />, '加粗')}
+          {bubbleBtn(editor.isActive('italic'), () => editor.chain().focus().toggleItalic().run(), <Italic size={13} />, '斜体')}
+          {bubbleBtn(editor.isActive('underline'), () => editor.chain().focus().toggleUnderline().run(), <UnderlineIcon size={13} />, '下划线')}
+          {bubbleBtn(editor.isActive('strike'), () => editor.chain().focus().toggleStrike().run(), <Strikethrough size={13} />, '删除线')}
+          {bubbleBtn(editor.isActive('code'), () => editor.chain().focus().toggleCode().run(), <Code size={13} />, '行内代码')}
+          {bubbleBtn(editor.isActive('highlight'), () => editor.chain().focus().toggleHighlight().run(), <Highlighter size={13} />, '高亮')}
+          <div className="w-px h-4 bg-gray-600 mx-0.5" />
+          {bubbleBtn(editor.isActive('link'), () => {
+            const prev = editor.getAttributes('link').href as string | undefined
+            const url = window.prompt('输入链接 URL', prev ?? 'https://')
+            if (url === null) return
+            if (url === '') { editor.chain().focus().unsetLink().run(); return }
+            editor.chain().focus().setLink({ href: url }).run()
+          }, <Link2 size={13} />, '链接')}
+        </div>
+      </BubbleMenu>
+
       <div className="flex-1 overflow-y-auto px-8 py-6">
         <EditorContent editor={editor} />
       </div>
@@ -304,4 +333,20 @@ function insertImageFile(view: EditorView, file: File, pos?: number) {
     view.dispatch(tr.scrollIntoView())
   }
   reader.readAsDataURL(file)
+}
+
+function bubbleBtn(active: boolean, onClick: () => void, icon: React.ReactNode, title: string) {
+  return (
+    <button
+      key={title}
+      type="button"
+      title={title}
+      onMouseDown={e => { e.preventDefault(); onClick() }}
+      className={`w-6 h-6 inline-flex items-center justify-center rounded transition-colors ${
+        active ? 'bg-white text-gray-900' : 'text-gray-300 hover:text-white hover:bg-gray-700'
+      }`}
+    >
+      {icon}
+    </button>
+  )
 }

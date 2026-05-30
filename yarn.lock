@@ -700,7 +700,7 @@
   resolved "https://registry.yarnpkg.com/@tiptap/extension-bold/-/extension-bold-2.27.2.tgz#612104c1e9eaba4c9301b21daa7ef19a9e487051"
   integrity sha512-bR7J5IwjCGQ0s3CIxyMvOCnMFMzIvsc5OVZKscTN5UkXzFsaY6muUAIqtKxayBUucjtUskm5qZowJITCeCb1/A==
 
-"@tiptap/extension-bubble-menu@^2.27.2":
+"@tiptap/extension-bubble-menu@^2.11.5", "@tiptap/extension-bubble-menu@^2.27.2":
   version "2.27.2"
   resolved "https://registry.yarnpkg.com/@tiptap/extension-bubble-menu/-/extension-bubble-menu-2.27.2.tgz#f75eb12a8d2496bcde739b5c20684db635a48b9e"
   integrity sha512-VkwlCOcr0abTBGzjPXklJ92FCowG7InU8+Od9FyApdLNmn0utRYGRhw0Zno6VgE9EYr1JY4BRnuSa5f9wlR72w==
