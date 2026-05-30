@@ -43,13 +43,16 @@ export class XiaohongshuAdapter extends BaseAdapter {
         tab.id,
         () => (async () => {
           try {
-            // galaxy API is on creator.xiaohongshu.com
-            const resp = await fetch('https://creator.xiaohongshu.com/api/galaxy/creator/home/personal_info', {
-              credentials: 'include',
-              headers: { Accept: 'application/json' },
+            const result = await new Promise(function(resolve, reject) {
+              const xhr = new XMLHttpRequest()
+              xhr.open('GET', 'https://creator.xiaohongshu.com/api/galaxy/creator/home/personal_info', true)
+              xhr.withCredentials = true
+              xhr.onload = function() { resolve({ ok: xhr.status >= 200 && xhr.status < 300, text: xhr.responseText }) }
+              xhr.onerror = function() { reject(new Error('XHR failed')) }
+              xhr.send()
             })
-            if (!resp.ok) return null
-            const data = await resp.json() as {
+            if (!result.ok) return null
+            const data = JSON.parse(result.text) as {
               success?: boolean; code?: number
               data?: { user_id?: string; nickname?: string; avatar?: string; imageb?: string }
             }
@@ -112,14 +115,13 @@ export class XiaohongshuAdapter extends BaseAdapter {
 
           for (const {url, method, body} of attempts) {
             try {
-              // Use XHR (like Axios) instead of fetch — 406 may be from fetch-specific headers
-              const result = await new Promise<{ok: boolean; status: number; text: string}>((resolve, reject) => {
+              const result = await new Promise(function(resolve, reject) {
                 const xhr = new XMLHttpRequest()
                 xhr.open(method, url, true)
                 xhr.withCredentials = true
                 xhr.setRequestHeader('Content-Type', 'application/json')
-                xhr.onload = () => resolve({ ok: xhr.status >= 200 && xhr.status < 300, status: xhr.status, text: xhr.responseText })
-                xhr.onerror = () => reject(new Error('XHR failed'))
+                xhr.onload = function() { resolve({ ok: xhr.status >= 200 && xhr.status < 300, status: xhr.status, text: xhr.responseText }) }
+                xhr.onerror = function() { reject(new Error('XHR failed')) }
                 xhr.send(body)
               })
               if (result.status === 404) continue
