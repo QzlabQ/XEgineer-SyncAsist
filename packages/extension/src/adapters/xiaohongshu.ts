@@ -1,9 +1,12 @@
 /**
  * 小红书适配器
  *
- * Xiaohongshu 的 API 需要请求签名（x-s/x-t），无法从 Service Worker 直接调用。
- * 改为：打开 creator.xiaohongshu.com → 注入 script 到页面 → 从页面上下文调 API
- * 这样复用页面的 session cookie、CSRF token 和 JS 生成的签名。
+ * API 路径提取自 creator.xiaohongshu.com 的 JS bundle：
+ * - 用户信息: GET  api/galaxy/creator/home/personal_info
+ * - 发布笔记: POST web_api/sns/v2/note
+ * - 图片上传: POST api/media/v1/upload/creator/permit
+ *
+ * 通过注入脚本到页面 MAIN world 调用 API，复用页面 cookie 和 origin。
  */
 import { BaseAdapter } from '@wechatsync/core/adapters/base'
 import type { Article, AuthResult, SyncResult, PlatformMeta } from '@wechatsync/core/types'
@@ -17,127 +20,147 @@ export class XiaohongshuAdapter extends BaseAdapter {
     capabilities: ['article', 'draft', 'tags'],
   }
 
-  private userInfo: { userId: string; nickname: string } | null = null
-
   async checkAuth(): Promise<AuthResult> {
-    // Cookie-based: check web_session on .xiaohongshu.com
     if (this.runtime.getCookie) {
       const session = await this.runtime.getCookie('.xiaohongshu.com', 'web_session')
       if (!session) return { isAuthenticated: false }
     } else {
       return { isAuthenticated: false }
     }
+
+    // Try to get user info via page injection
+    if (!this.runtime.tabs) return { isAuthenticated: true }
+
+    try {
+      const tab = await this.runtime.tabs.create('https://creator.xiaohongshu.com', false)
+      if (!tab?.id) return { isAuthenticated: true }
+      try { await this.runtime.tabs.waitForLoad(tab.id, 10000) } catch { /* proceed */ }
+
+      const info = await this.runtime.tabs.executeScript<
+        [],
+        { userId?: string; nickname?: string; avatar?: string } | null
+      >(
+        tab.id,
+        () => (async () => {
+          try {
+            const resp = await fetch('/api/galaxy/creator/home/personal_info', {
+              credentials: 'include',
+              headers: { Accept: 'application/json' },
+            })
+            if (!resp.ok) return null
+            const data = await resp.json() as {
+              success?: boolean; code?: number
+              data?: { user_id?: string; nickname?: string; avatar?: string; imageb?: string }
+            }
+            if ((data.success || data.code === 0) && data.data) {
+              const d = data.data
+              return d.user_id ? { userId: d.user_id, nickname: d.nickname, avatar: d.avatar ?? d.imageb } : null
+            }
+            return null
+          } catch { return null }
+        })(),
+        [],
+        'MAIN'
+      )
+      try { chrome.tabs.remove(tab.id) } catch { /* ok */ }
+      if (info?.userId) {
+        return { isAuthenticated: true, userId: info.userId, username: info.nickname, avatar: info.avatar }
+      }
+    } catch { /* proceed with cookie-only auth */ }
+
     return { isAuthenticated: true }
   }
 
   async publish(article: Article): Promise<SyncResult> {
     try {
-      const auth = await this.checkAuth()
-      if (!auth.isAuthenticated) throw new Error('请先登录小红书（www.xiaohongshu.com）')
-
       if (!this.runtime.tabs) throw new Error('tabs API unavailable')
 
-      // Build the note content
-      const tags = article.tags ?? []
+      const tags = (article.tags ?? []).map(t => ({ name: t, type: 1 }))
       const desc = [
         article.markdown || article.title || '',
-        tags.map(t => `#${t}`).join(' '),
+        (article.tags ?? []).map(t => '#' + t).join(' '),
       ].filter(Boolean).join('\n\n')
 
-      // Open creator page in background tab to trigger SSO and get page context
-      const tab = await this.runtime.tabs.create(
-        'https://creator.xiaohongshu.com',
-        false // background
+      // Step 1: Open creator page (background) — triggers SSO, sets session
+      const tab = await this.runtime.tabs.create('https://creator.xiaohongshu.com', false)
+      if (!tab?.id) throw new Error('无法打开创作者平台')
+      try { await this.runtime.tabs.waitForLoad(tab.id, 15000) } catch {
+        throw new Error('小红书创作者平台加载超时')
+      }
+
+      // Step 2: Inject publish script in MAIN world
+      const result = await this.runtime.tabs.executeScript<
+        [string, string, Array<{name: string; type: number}>],
+        { success: boolean; noteId?: string; error?: string }
+      >(
+        tab.id,
+        (title: string, descText: string, hashTags: Array<{name: string; type: number}>) => (async () => {
+          // Try web_api/sns/v2/note first (current API from JS bundle analysis)
+          const paths = [
+            '/web_api/sns/v2/note',
+            '/web_api/sns/capa/postgw/note/update',
+          ]
+          for (const path of paths) {
+            try {
+              const resp = await fetch(path, {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  title,
+                  desc: descText,
+                  type: 1,
+                  note_type: 1,
+                  hash_tag: hashTags,
+                  image_info_list: [],
+                  ats: [],
+                  is_private: false,
+                  post_loc: {},
+                  business_binds: {},
+                }),
+              })
+              if (!resp.ok) {
+                // Try next path
+                if (resp.status === 404) continue
+                const errText = await resp.text()
+                return { success: false, error: `HTTP ${resp.status}: ${errText.slice(0, 200)}` }
+              }
+              const data = await resp.json() as {
+                success?: boolean; code?: number; msg?: string
+                data?: { note_id?: string; id?: string; noteId?: string }
+              }
+              if (data.success || data.code === 0) {
+                const noteId = data.data?.note_id ?? data.data?.id ?? data.data?.noteId ?? ''
+                return { success: true, noteId }
+              }
+              return { success: false, error: data.msg || `code=${data.code}` }
+            } catch (e) {
+              // Try next path
+            }
+          }
+          return { success: false, error: '所有 API 路径都不可用' }
+        })(),
+        [article.title || '无标题', desc, tags],
+        'MAIN'
       )
 
-      if (!tab?.id) throw new Error('Failed to open creator tab')
+      // Close tab
+      try { chrome.tabs.remove(tab.id!) } catch { /* ok */ }
 
-      // Wait for page to load (SSO may redirect)
-      try {
-        await this.runtime.tabs.waitForLoad(tab.id, 15000)
-      } catch {
-        throw new Error('小红书创作者平台加载超时，请检查网络')
-      }
-
-      // Inject publish script into the page (MAIN world = page context)
-      try {
-        const result = await this.runtime.tabs.executeScript<
-          [string, Array<{name: string; type: number}>, string],
-          { success: boolean; noteId?: string; error?: string }
-        >(
-          tab.id,
-          (title: string, hashTags: Array<{name: string; type: number}>, descText: string) => {
-            // Running in page's MAIN world — inherits page's auth context
-            return (async () => {
-              try {
-                const resp = await fetch(
-                  'https://creator.xiaohongshu.com/api/galaxy/creator/note/post',
-                  {
-                    method: 'POST',
-                    credentials: 'include',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      type: 1, // 图文
-                      title,
-                      desc: descText,
-                      ats: [],
-                      hash_tag: hashTags,
-                      image_info_list: [],
-                      is_private: false,
-                      post_loc: {},
-                      business_binds: {},
-                    }),
-                  }
-                )
-
-                if (!resp.ok) {
-                  const errText = await resp.text()
-                  return { success: false, error: `HTTP ${resp.status}: ${errText.slice(0, 200)}` }
-                }
-
-                const data = await resp.json() as {
-                  success?: boolean; code?: number; msg?: string
-                  data?: { id?: string; noteId?: string }
-                }
-
-                if (data.success || data.code === 0) {
-                  return {
-                    success: true,
-                    noteId: data.data?.id ?? data.data?.noteId ?? '',
-                  }
-                }
-
-                return { success: false, error: data.msg || `code=${data.code}` }
-              } catch (e) {
-                return { success: false, error: (e as Error).message }
-              }
-            })()
-          },
-          [article.title || '无标题', tags.map(t => ({ name: t, type: 1 })), desc],
-          'MAIN'
-        )
-
-        // Close the background tab
-        try { chrome.tabs.remove(tab.id) } catch { /* ok */ }
-
-        if (result?.success) {
-          const noteId = result.noteId ?? ''
-          return {
-            platform: 'xiaohongshu',
-            success: true,
-            postId: noteId,
-            postUrl: noteId ? `https://www.xiaohongshu.com/explore/${noteId}` : undefined,
-            draftOnly: true,
-            message: '已发布到小红书草稿，请前往创作者平台确认',
-            timestamp: Date.now(),
-          }
+      if (result?.success) {
+        const noteId = result.noteId ?? ''
+        return {
+          platform: 'xiaohongshu',
+          success: true,
+          postId: noteId,
+          postUrl: noteId ? `https://www.xiaohongshu.com/explore/${noteId}` : undefined,
+          draftOnly: true,
+          message: '已发布到小红书草稿，请前往创作者平台确认发布',
+          timestamp: Date.now(),
         }
-
-        throw new Error(result?.error || '发布失败')
-      } catch (e) {
-        try { chrome.tabs.remove(tab.id!) } catch { /* ok */ }
-        throw e
       }
+
+      throw new Error(result?.error || '小红书发布失败')
     } catch (e) {
       return {
         platform: 'xiaohongshu',
