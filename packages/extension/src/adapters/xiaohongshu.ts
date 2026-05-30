@@ -1,13 +1,12 @@
 /**
  * 小红书适配器
  *
- * 架构说明：
- * - checkAuth: cookie-based（web_session cookie 存在 = 已登录）
- * - 用户信息: 从 edith.xiaohongshu.com API 获取（新版编辑器平台，与主站共享 session）
- * - publish: 调用 edith.xiaohongshu.com 的 API 发布笔记草稿
+ * 前置条件：用户需在浏览器中登录 www.xiaohongshu.com 并访问一次 edith.xiaohongshu.com
+ * （小红书 SSO 会自动同步 session 到编辑器子域）
  *
- * edith.xiaohongshu.com 是小红书新版网页编辑器，与主站共用 session cookie，
- * API 要求相对宽松。galaxy/creator 是旧版创作者平台，API 路径可能已变更。
+ * Cookie 说明：
+ * - web_session：登录 session，domain=.xiaohongshu.com，所有子域共享
+ * - 需要在 edith.xiaohongshu.com 也激活 session 才能调用 API
  */
 import { CodeAdapter } from '@wechatsync/core/adapters/code-adapter'
 import type { Article, AuthResult, SyncResult, PlatformMeta } from '@wechatsync/core/types'
@@ -18,14 +17,6 @@ const HEADER_RULES = [
     headers: {
       'Origin': 'https://edith.xiaohongshu.com',
       'Referer': 'https://edith.xiaohongshu.com/',
-    },
-    resourceTypes: ['xmlhttprequest'],
-  },
-  {
-    urlFilter: '*://creator.xiaohongshu.com/*',
-    headers: {
-      'Origin': 'https://creator.xiaohongshu.com',
-      'Referer': 'https://creator.xiaohongshu.com/',
     },
     resourceTypes: ['xmlhttprequest'],
   },
@@ -44,77 +35,86 @@ export class XiaohongshuAdapter extends CodeAdapter {
     id: 'xiaohongshu',
     name: '小红书',
     icon: 'https://www.xiaohongshu.com/favicon.ico',
-    homepage: 'https://www.xiaohongshu.com',
+    homepage: 'https://edith.xiaohongshu.com',
     capabilities: ['article', 'draft', 'tags'],
   }
 
   private userInfo: { userId: string; nickname: string } | null = null
 
   async checkAuth(): Promise<AuthResult> {
-    // Step 1: cookie-based detection (zero CORS/API dependency)
+    // Check session cookie on main domain (most reliable)
     let hasSession = false
     if (this.runtime.getCookie) {
       const session = await this.runtime.getCookie('.xiaohongshu.com', 'web_session')
       hasSession = !!session
-    }
-    if (!hasSession) {
-      // Also try without leading dot
-      if (this.runtime.getCookie) {
-        const session = await this.runtime.getCookie('xiaohongshu.com', 'web_session')
-        hasSession = !!session
+      if (!hasSession) {
+        const s2 = await this.runtime.getCookie('xiaohongshu.com', 'web_session')
+        hasSession = !!s2
       }
     }
     if (!hasSession) return { isAuthenticated: false }
 
-    // Step 2: try to get user profile (best-effort, auth is still valid without it)
+    // Try www API for user profile (most users are logged in here)
     return this.withHeaderRules(HEADER_RULES, async () => {
-      // Try edith first (new editor, same session)
-      const endpoints = [
-        'https://edith.xiaohongshu.com/api/sns/web/v1/user/me',
-        'https://www.xiaohongshu.com/api/sns/web/v1/user/selfinfo',
-      ]
-      for (const url of endpoints) {
-        try {
-          const resp = await this.runtime.fetch(url, {
+      try {
+        const resp = await this.runtime.fetch(
+          'https://www.xiaohongshu.com/api/sns/web/v1/user/selfinfo',
+          {
             credentials: 'include',
-            headers: { Accept: 'application/json' },
-          })
-          if (!resp.ok) continue
+            headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+          }
+        )
+        if (resp.ok) {
           const data = await resp.json() as {
             success?: boolean
             data?: {
-              user_id?: string; nickname?: string; avatar?: string
+              user_id?: string; nickname?: string; avatar_url?: string
               basic_info?: { nickname?: string; imageb?: string }
             }
           }
-          const user = data.data
-          if (data.success && user) {
-            const userId = user.user_id ?? ''
-            const nickname = user.nickname ?? user.basic_info?.nickname ?? ''
+          const d = data.data
+          if (data.success && d) {
+            const userId = d.user_id ?? ''
+            const nickname = d.nickname ?? d.basic_info?.nickname ?? ''
             if (userId) {
               this.userInfo = { userId, nickname }
               return {
                 isAuthenticated: true,
                 userId,
                 username: nickname || undefined,
-                avatar: user.avatar ?? user.basic_info?.imageb,
+                avatar: d.avatar_url ?? d.basic_info?.imageb,
               }
             }
           }
-        } catch { /* continue */ }
-      }
+        }
+      } catch { /* continue */ }
 
-      // Auth valid but couldn't get profile — still return authenticated
-      return {
-        isAuthenticated: true,
-        userId: 'xhs_user',
-        username: '小红书用户',
-      }
-    }).catch(() => ({
-      // withHeaderRules itself failed, but cookie check passed
-      isAuthenticated: true,
-      userId: 'xhs_user',
-    }))
+      // Fallback: try edith API (requires visiting edith.xiaohongshu.com once)
+      try {
+        const resp = await this.runtime.fetch(
+          'https://edith.xiaohongshu.com/api/sns/web/v1/user/me',
+          { credentials: 'include', headers: { Accept: 'application/json' } }
+        )
+        if (resp.ok) {
+          const data = await resp.json() as {
+            success?: boolean
+            data?: { user_id?: string; nickname?: string; avatar?: string }
+          }
+          if (data.success && data.data?.user_id) {
+            this.userInfo = { userId: data.data.user_id, nickname: data.data.nickname ?? '' }
+            return {
+              isAuthenticated: true,
+              userId: data.data.user_id,
+              username: data.data.nickname || undefined,
+              avatar: data.data.avatar,
+            }
+          }
+        }
+      } catch { /* continue */ }
+
+      // Cookie exists but APIs unavailable — likely need to visit edith once
+      return { isAuthenticated: true }
+    }).catch(() => ({ isAuthenticated: true }))
   }
 
   async publish(article: Article): Promise<SyncResult> {
@@ -127,20 +127,22 @@ export class XiaohongshuAdapter extends CodeAdapter {
       const tagLine = tags.map(t => `#${t}`).join(' ')
       const desc = [descBody, tagLine].filter(Boolean).join('\n\n')
 
-      // Try edith API (new editor platform) first
-      const publishUrls = [
-        'https://edith.xiaohongshu.com/api/sns/web/v1/note',
-        'https://creator.xiaohongshu.com/api/galaxy/creator/note/post',
-      ]
-
+      // Try edith API — the newer editor platform
       let lastError = ''
-      let lastStatus = 0
-
-      for (const url of publishUrls) {
+      for (const url of [
+        'https://edith.xiaohongshu.com/api/sns/web/v1/note',
+      ]) {
         try {
-          const body = url.includes('edith')
-            ? { title: article.title, desc, type: 1, note_type: 1, post_loc: {} }
-            : { title: article.title, desc, type: 1, hash_tag: tags.map(t => ({ name: t, type: 1 })), ats: [], image_info_list: [], is_private: false, post_loc: {}, business_binds: {} }
+          const body = {
+            title: article.title || '无标题',
+            desc,
+            type: 1,
+            note_type: 1,
+            post_loc: {},
+            image_info_list: [],
+            ats: [],
+            topic: {},
+          }
 
           const resp = await this.runtime.fetch(url, {
             method: 'POST',
@@ -149,44 +151,38 @@ export class XiaohongshuAdapter extends CodeAdapter {
             body: JSON.stringify(body),
           })
 
-          lastStatus = resp.status
           const text = await resp.text()
+          let parsed: { success?: boolean; code?: number; msg?: string; message?: string; data?: { id?: string; note_id?: string } } = {}
+          try { parsed = JSON.parse(text) } catch { /* raw text */ }
 
-          if (resp.ok) {
-            try {
-              const res = JSON.parse(text) as {
-                success?: boolean; code?: number; msg?: string
-                data?: { id?: string; note_id?: string; noteId?: string }
-              }
-              if (res.success || res.code === 0) {
-                const noteId = res.data?.note_id ?? res.data?.id ?? res.data?.noteId ?? ''
-                return {
-                  platform: 'xiaohongshu',
-                  success: true,
-                  postId: noteId,
-                  postUrl: noteId ? `https://www.xiaohongshu.com/explore/${noteId}` : undefined,
-                  draftOnly: true,
-                  message: noteId ? '已发布到小红书，请前往确认' : '已发布到小红书草稿',
-                  timestamp: Date.now(),
-                }
-              }
-              lastError = res.msg ?? `code=${res.code}`
-            } catch {
-              lastError = `unexpected response: ${text.slice(0, 200)}`
+          if (resp.ok && (parsed.success ?? true)) {
+            const noteId = parsed.data?.note_id ?? parsed.data?.id ?? ''
+            return {
+              platform: 'xiaohongshu',
+              success: true,
+              postId: noteId,
+              postUrl: noteId ? `https://www.xiaohongshu.com/explore/${noteId}` : undefined,
+              draftOnly: true,
+              message: noteId ? '已发布到小红书，请前往确认' : '已发布到小红书草稿',
+              timestamp: Date.now(),
             }
+          }
+
+          if (resp.status === 401) {
+            lastError = '会话未激活，请在浏览器中访问 https://edith.xiaohongshu.com 一次后再试'
           } else {
-            lastError = `HTTP ${resp.status}: ${text.slice(0, 200)}`
+            lastError = parsed.msg || parsed.message || `HTTP ${resp.status}: ${text.slice(0, 100)}`
           }
         } catch (e) {
           lastError = (e as Error).message
         }
       }
 
-      throw new Error(`小红书发布失败（${lastStatus ? `HTTP ${lastStatus}` : ''}${lastError ? `: ${lastError}` : ''}）`)
+      throw new Error(lastError || '小红书发布失败')
     }).catch((e: unknown) => ({
       platform: 'xiaohongshu',
       success: false,
-      error: (e as Error).message.replace(/^.*?:\s*/, ''),
+      error: (e as Error).message,
       timestamp: Date.now(),
     }))
   }
