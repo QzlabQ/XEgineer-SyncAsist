@@ -1,18 +1,25 @@
 'use client'
 
 import { useState, useMemo, useRef } from 'react'
-import { tiptapToAST, getRenderer } from '@xegineer/renderer'
+import { tiptapToAST, getRenderer, getAllRenderers } from '@xegineer/renderer'
 
 interface PreviewPanelProps {
   title: string
   tiptapJSON: string
 }
 
-const PLATFORMS = [
+const PLATFORMS = getAllRenderers().map(renderer => ({
+  id: renderer.platformId,
+  name: renderer.platformName,
+}))
+
+/* removed legacy static preview list
+[
   { id: 'zhihu', name: '知乎' },
   { id: 'bilibili', name: 'B站' },
   { id: 'juejin', name: '掘金' },
 ]
+*/
 
 export function PreviewPanel({ title, tiptapJSON }: PreviewPanelProps) {
   const [activePlatform, setActivePlatform] = useState('zhihu')
@@ -38,12 +45,6 @@ export function PreviewPanel({ title, tiptapJSON }: PreviewPanelProps) {
   }
 
   const handleTabKey = (event: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
-    if (event.key === 'Tab') {
-      event.preventDefault()
-      focusPlatform(index + (event.shiftKey ? -1 : 1))
-      return
-    }
-
     if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
       event.preventDefault()
       focusPlatform(index + 1)

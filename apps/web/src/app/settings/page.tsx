@@ -57,6 +57,12 @@ export default function SettingsPage() {
                 <p className="text-sm font-medium text-orange-800">扩展未安装</p>
                 <p className="text-xs text-orange-600 mt-1">需要安装 XEgineer 浏览器扩展才能发布文章</p>
                 <p className="text-xs text-orange-500 mt-2">请在本地加载 packages/extension/dist 目录，并在重载扩展后刷新当前页面</p>
+                <ol className="mt-3 space-y-1 text-xs text-orange-700 list-decimal list-inside">
+                  <li>运行 `yarn workspace @xegineer/extension build` 生成 dist</li>
+                  <li>打开浏览器扩展管理页并开启开发者模式</li>
+                  <li>选择“加载已解压的扩展程序”，目录选 packages/extension/dist</li>
+                  <li>回到 localhost 页面后点击重新检测</li>
+                </ol>
                 {extensionError && (
                   <p className="text-xs text-orange-700 mt-2">检测结果：{extensionError}</p>
                 )}

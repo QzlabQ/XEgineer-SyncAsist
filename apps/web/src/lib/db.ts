@@ -23,6 +23,7 @@ export interface PublishRecord {
   isDraft: boolean
   success: boolean
   error?: string
+  message?: string
 }
 
 export interface PlatformConfigRecord {

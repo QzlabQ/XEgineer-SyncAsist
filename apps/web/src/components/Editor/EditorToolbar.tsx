@@ -22,10 +22,13 @@ export function EditorToolbar({ editor, onImageUpload }: EditorToolbarProps) {
   ) => (
     <button
       key={title}
+      type="button"
       title={title}
+      aria-label={title}
+      aria-pressed={active}
       disabled={disabled}
       onClick={onClick}
-      className={`p-1.5 rounded text-sm transition-colors ${
+      className={`w-8 h-8 inline-flex items-center justify-center rounded text-sm transition-colors ${
         active
           ? 'bg-blue-100 text-blue-700'
           : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
@@ -50,7 +53,7 @@ export function EditorToolbar({ editor, onImageUpload }: EditorToolbarProps) {
   const sz = 15
 
   return (
-    <div className="flex flex-wrap items-center gap-0.5 px-4 py-2 border-b border-gray-200 bg-white sticky top-0 z-10">
+    <div className="flex flex-wrap items-center gap-1 px-4 py-2 border-b border-gray-200 bg-white sticky top-0 z-10">
       {/* History */}
       {btn(false, () => editor.chain().focus().undo().run(), <Undo size={sz} />, '撤销', !editor.can().undo())}
       {btn(false, () => editor.chain().focus().redo().run(), <Redo size={sz} />, '重做', !editor.can().redo())}

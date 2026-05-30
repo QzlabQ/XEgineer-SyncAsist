@@ -1,28 +1,35 @@
 'use client'
 
-import { useEffect } from 'react'
-import { CheckCircle, XCircle, Loader2, ExternalLink } from 'lucide-react'
+import { AlertCircle, CheckCircle, XCircle, Loader2, ExternalLink, RotateCcw } from 'lucide-react'
 import { usePublishStore } from '@/stores/publish'
 import { useArticleStore } from '@/stores/article'
 import { tiptapToAST, getRenderer } from '@xegineer/renderer'
 
 export function PublishDialog() {
-  const { platforms, isPublishing, showPublishDialog, setShowPublishDialog, publish, resetPublishStatus } = usePublishStore()
+  const { platforms, isPublishing, showPublishDialog, setShowPublishDialog, publish, publishOne, resetPublishStatus } = usePublishStore()
   const { current } = useArticleStore()
 
   const selected = platforms.filter(p => p.selected)
   const hasResults = selected.some(p => p.publishStatus !== 'idle' && p.publishStatus !== 'pending')
 
+  const buildPayload = (platformId: string) => {
+    if (!current) return {}
+    const doc = JSON.parse(current.tiptapJSON)
+    const ast = tiptapToAST(doc, current.title)
+    const renderer = getRenderer(platformId)
+    if (!renderer) return {}
+    const platform = platforms.find(p => p.id === platformId)
+    return renderer.render(ast, platform?.config ?? {}) as Record<string, unknown>
+  }
+
   const handlePublish = async () => {
     if (!current?.id) return
-    await publish(current.id, (platformId) => {
-      const doc = JSON.parse(current.tiptapJSON)
-      const ast = tiptapToAST(doc, current.title)
-      const renderer = getRenderer(platformId)
-      if (!renderer) return {}
-      const platform = platforms.find(p => p.id === platformId)
-      return renderer.render(ast, platform?.config ?? {}) as Record<string, unknown>
-    })
+    await publish(current.id, buildPayload)
+  }
+
+  const handleRetry = async (platformId: string) => {
+    if (!current?.id) return
+    await publishOne(current.id, platformId, buildPayload)
   }
 
   const handleClose = () => {
@@ -63,12 +70,27 @@ export function PublishDialog() {
                           </a>
                         )}
                         {!p.publishUrl && <span className="text-xs text-green-600">已保存草稿</span>}
+                        {p.publishMessage && (
+                          <span className="inline-flex items-center gap-0.5 text-xs text-amber-600 max-w-40 truncate" title={p.publishMessage}>
+                            <AlertCircle size={12} />
+                            {p.publishMessage}
+                          </span>
+                        )}
                       </div>
                     )}
                     {p.publishStatus === 'error' && (
                       <div className="flex items-center gap-1">
                         <XCircle size={16} className="text-red-500" />
                         <span className="text-xs text-red-500 max-w-32 truncate" title={p.publishError}>{p.publishError ?? '失败'}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleRetry(p.id)}
+                          disabled={isPublishing}
+                          className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded disabled:opacity-40"
+                          title="重试发布"
+                        >
+                          <RotateCcw size={12} />
+                        </button>
                       </div>
                     )}
                     {p.publishStatus === 'idle' && (

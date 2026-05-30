@@ -1,7 +1,8 @@
 'use client'
 
 import { useEditor, EditorContent } from '@tiptap/react'
-import { useEffect, useCallback } from 'react'
+import { useEffect, useCallback, useRef, useState } from 'react'
+import type { Editor } from '@tiptap/core'
 import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
 import Link from '@tiptap/extension-link'
@@ -18,12 +19,94 @@ import Typography from '@tiptap/extension-typography'
 import type { EditorView } from '@tiptap/pm/view'
 import { EditorToolbar } from './EditorToolbar'
 
+interface SlashState {
+  query: string
+  from: number
+  to: number
+  top: number
+  left: number
+}
+
+interface SlashCommand {
+  title: string
+  hint: string
+  keywords: string[]
+  run: (editor: Editor, state: SlashState) => void
+}
+
+const SLASH_COMMANDS: SlashCommand[] = [
+  {
+    title: '一级标题',
+    hint: '大标题',
+    keywords: ['h1', 'title', 'biaoti'],
+    run: (editor, state) => editor.chain().focus().deleteRange(state).toggleHeading({ level: 1 }).run(),
+  },
+  {
+    title: '二级标题',
+    hint: '章节标题',
+    keywords: ['h2', 'heading', 'biaoti'],
+    run: (editor, state) => editor.chain().focus().deleteRange(state).toggleHeading({ level: 2 }).run(),
+  },
+  {
+    title: '无序列表',
+    hint: '项目符号',
+    keywords: ['list', 'ul', 'liebiao'],
+    run: (editor, state) => editor.chain().focus().deleteRange(state).toggleBulletList().run(),
+  },
+  {
+    title: '有序列表',
+    hint: '编号列表',
+    keywords: ['ol', 'number', 'liebiao'],
+    run: (editor, state) => editor.chain().focus().deleteRange(state).toggleOrderedList().run(),
+  },
+  {
+    title: '任务列表',
+    hint: '待办事项',
+    keywords: ['task', 'todo'],
+    run: (editor, state) => editor.chain().focus().deleteRange(state).toggleTaskList().run(),
+  },
+  {
+    title: '引用',
+    hint: '引文块',
+    keywords: ['quote', 'blockquote', 'yinyong'],
+    run: (editor, state) => editor.chain().focus().deleteRange(state).toggleBlockquote().run(),
+  },
+  {
+    title: '代码块',
+    hint: '多行代码',
+    keywords: ['code', 'daima'],
+    run: (editor, state) => editor.chain().focus().deleteRange(state).toggleCodeBlock().run(),
+  },
+  {
+    title: '表格',
+    hint: '3 x 3',
+    keywords: ['table', 'biaoge'],
+    run: (editor, state) => editor.chain().focus().deleteRange(state).insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(),
+  },
+  {
+    title: '分割线',
+    hint: '水平线',
+    keywords: ['hr', 'line', 'divider'],
+    run: (editor, state) => editor.chain().focus().deleteRange(state).setHorizontalRule().run(),
+  },
+]
+
 interface RichEditorProps {
   content: string
   onChange: (json: string) => void
 }
 
 export function RichEditor({ content, onChange }: RichEditorProps) {
+  const [slashState, setSlashState] = useState<SlashState | null>(null)
+  const [slashIndex, setSlashIndex] = useState(0)
+  const slashStateRef = useRef<SlashState | null>(null)
+
+  const setSlashMenu = useCallback((state: SlashState | null) => {
+    slashStateRef.current = state
+    setSlashState(state)
+    setSlashIndex(0)
+  }, [])
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -64,6 +147,10 @@ export function RichEditor({ content, onChange }: RichEditorProps) {
     },
     onUpdate({ editor }) {
       onChange(JSON.stringify(editor.getJSON()))
+      updateSlashMenu(editor, setSlashMenu)
+    },
+    onSelectionUpdate({ editor }) {
+      updateSlashMenu(editor, setSlashMenu)
     },
     immediatelyRender: false,
   })
@@ -94,16 +181,111 @@ export function RichEditor({ content, onChange }: RichEditorProps) {
     input.click()
   }, [editor])
 
+  const filteredSlashCommands = slashState
+    ? SLASH_COMMANDS.filter(command => {
+      const query = slashState.query.toLowerCase()
+      return command.title.toLowerCase().includes(query) ||
+        command.hint.toLowerCase().includes(query) ||
+        command.keywords.some(keyword => keyword.includes(query))
+    })
+    : []
+
+  useEffect(() => {
+    if (slashIndex >= filteredSlashCommands.length) setSlashIndex(0)
+  }, [filteredSlashCommands.length, slashIndex])
+
+  const applySlashCommand = useCallback((command: SlashCommand) => {
+    const state = slashStateRef.current
+    if (!editor || !state) return
+    command.run(editor, state)
+    setSlashMenu(null)
+  }, [editor, setSlashMenu])
+
+  const handleEditorKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!slashState || filteredSlashCommands.length === 0) return
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault()
+      setSlashIndex(index => (index + 1) % filteredSlashCommands.length)
+      return
+    }
+
+    if (event.key === 'ArrowUp') {
+      event.preventDefault()
+      setSlashIndex(index => (index - 1 + filteredSlashCommands.length) % filteredSlashCommands.length)
+      return
+    }
+
+    if (event.key === 'Enter') {
+      event.preventDefault()
+      applySlashCommand(filteredSlashCommands[slashIndex])
+      return
+    }
+
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      setSlashMenu(null)
+    }
+  }
+
   if (!editor) return null
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full" onKeyDownCapture={handleEditorKeyDown}>
       <EditorToolbar editor={editor} onImageUpload={handleImageUpload} />
       <div className="flex-1 overflow-y-auto px-8 py-6">
         <EditorContent editor={editor} />
       </div>
+      {slashState && filteredSlashCommands.length > 0 && (
+        <div
+          className="fixed z-50 w-56 rounded-lg border border-gray-200 bg-white shadow-lg py-1"
+          style={{ top: slashState.top, left: slashState.left }}
+        >
+          {filteredSlashCommands.map((command, index) => (
+            <button
+              key={command.title}
+              type="button"
+              onMouseDown={event => {
+                event.preventDefault()
+                applySlashCommand(command)
+              }}
+              className={`w-full text-left px-3 py-2 ${index === slashIndex ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
+            >
+              <span className="block text-sm text-gray-900">{command.title}</span>
+              <span className="block text-xs text-gray-400">{command.hint}</span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
+}
+
+function updateSlashMenu(editor: Editor, setSlashMenu: (state: SlashState | null) => void) {
+  const { selection } = editor.state
+  if (!selection.empty) {
+    setSlashMenu(null)
+    return
+  }
+
+  const $from = selection.$from
+  const textBefore = $from.parent.textBetween(0, $from.parentOffset, '\n', '\n')
+  const match = textBefore.match(/\/([A-Za-z0-9\u4e00-\u9fa5]*)$/)
+
+  if (!match) {
+    setSlashMenu(null)
+    return
+  }
+
+  const from = $from.pos - match[0].length
+  const coords = editor.view.coordsAtPos(from)
+  setSlashMenu({
+    query: match[1],
+    from,
+    to: $from.pos,
+    top: coords.bottom + 8,
+    left: Math.min(coords.left, window.innerWidth - 240),
+  })
 }
 
 function insertImageFile(view: EditorView, file: File, pos?: number) {

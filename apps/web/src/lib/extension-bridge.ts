@@ -37,6 +37,7 @@ export interface PublishResult {
   postId?: string
   isDraft: boolean
   error?: string
+  message?: string
 }
 
 class ExtensionBridge {

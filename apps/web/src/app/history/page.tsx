@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, CheckCircle, ExternalLink, History, XCircle } from 'lucide-react'
+import { AlertCircle, ArrowLeft, CheckCircle, ExternalLink, History, XCircle } from 'lucide-react'
 import { db, type PublishRecord } from '@/lib/db'
 
 interface HistoryItem extends PublishRecord {
@@ -73,6 +73,12 @@ export default function HistoryPage() {
                     </p>
                     {item.error && (
                       <p className="text-xs text-red-500 mt-2 line-clamp-2">{item.error}</p>
+                    )}
+                    {item.message && (
+                      <p className="text-xs text-amber-600 mt-2 line-clamp-2 inline-flex items-start gap-1">
+                        <AlertCircle size={12} className="mt-0.5 flex-shrink-0" />
+                        <span>{item.message}</span>
+                      </p>
                     )}
                   </div>
 

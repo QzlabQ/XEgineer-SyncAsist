@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo } from 'react'
-import { CheckCircle, AlertCircle, RefreshCw, Upload } from 'lucide-react'
+import { CheckCircle, AlertCircle, RefreshCw, Upload, X } from 'lucide-react'
 import { usePublishStore } from '@/stores/publish'
 import { useArticleStore } from '@/stores/article'
 import { extractImages, extractPlainText, tiptapToAST } from '@xegineer/renderer'
@@ -189,9 +189,29 @@ function ConfigField({
 
   if (field.type === 'image') {
     const imageValue = typeof value === 'string' ? value : ''
+    const setImageValue = (src?: string) => {
+      const patch: Partial<PlatformConfig> = { [field.key]: src }
+      if (field.key === 'cover') {
+        patch.cover = src
+      }
+      onChange(patch)
+    }
+
     return (
       <div>
-        <label className="text-xs text-gray-500 block mb-1">{label}</label>
+        <div className="flex items-center justify-between mb-1">
+          <label className="text-xs text-gray-500">{label}</label>
+          {imageValue && (
+            <button
+              type="button"
+              onClick={() => setImageValue(undefined)}
+              className="p-0.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded"
+              title="清空图片"
+            >
+              <X size={12} />
+            </button>
+          )}
+        </div>
         {imageValue && (
           <img src={imageValue} alt="" className="w-full h-20 object-cover rounded border border-gray-200 mb-1" />
         )}
@@ -200,7 +220,7 @@ function ConfigField({
             type="text"
             placeholder="图片 URL"
             value={imageValue}
-            onChange={e => onChange({ [field.key]: e.target.value })}
+            onChange={e => setImageValue(e.target.value)}
             className="min-w-0 flex-1 text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:border-blue-400"
           />
           <label className="p-1.5 text-gray-500 border border-gray-200 rounded cursor-pointer hover:bg-gray-100" title="上传图片">
@@ -213,8 +233,14 @@ function ConfigField({
                 const file = e.target.files?.[0]
                 if (!file) return
                 const reader = new FileReader()
-                reader.onload = ev => onChange({ [field.key]: ev.target?.result as string })
+                reader.onload = ev => {
+                  const src = ev.target?.result
+                  if (typeof src === 'string') {
+                    setImageValue(src)
+                  }
+                }
                 reader.readAsDataURL(file)
+                e.currentTarget.value = ''
               }}
             />
           </label>
@@ -225,7 +251,7 @@ function ConfigField({
               <button
                 key={`${src}-${index}`}
                 type="button"
-                onClick={() => onChange({ [field.key]: src })}
+                onClick={() => setImageValue(src)}
                 className={`w-8 h-8 rounded border overflow-hidden ${imageValue === src ? 'border-blue-500 ring-1 ring-blue-500' : 'border-gray-200'}`}
                 title="使用正文图片"
               >

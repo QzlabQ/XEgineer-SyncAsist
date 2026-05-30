@@ -4,6 +4,8 @@ import { ExtensionRuntime } from '../runtime/extension'
 import { ZhihuAdapter } from '@wechatsync/core/adapters/platforms/zhihu'
 import { BilibiliAdapter } from '@wechatsync/core/adapters/platforms/bilibili'
 import { JuejinAdapter } from '@wechatsync/core/adapters/platforms/juejin'
+import { WeixinAdapter } from '@wechatsync/core/adapters/platforms/weixin'
+import { CSDNAdapter } from '@wechatsync/core/adapters/platforms/csdn'
 import type { BaseAdapter } from '@wechatsync/core/adapters/base'
 import type { Article } from '@wechatsync/core/types'
 
@@ -13,6 +15,8 @@ const ADAPTERS: Record<string, AdapterClass> = {
   zhihu: ZhihuAdapter as unknown as AdapterClass,
   bilibili: BilibiliAdapter as unknown as AdapterClass,
   juejin: JuejinAdapter as unknown as AdapterClass,
+  weixin: WeixinAdapter as unknown as AdapterClass,
+  csdn: CSDNAdapter as unknown as AdapterClass,
 }
 
 const runtime = new ExtensionRuntime()
@@ -107,6 +111,7 @@ async function handleMessage(msg: XEgineerMessage): Promise<XEgineerResponse> {
           postId: result.postId,
           isDraft: result.draftOnly ?? true,
           error: result.error,
+          message: result.message,
         },
       }
     }

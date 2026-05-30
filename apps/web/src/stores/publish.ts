@@ -18,6 +18,7 @@ export interface PlatformState {
   publishStatus: PublishStatus
   publishUrl?: string
   publishError?: string
+  publishMessage?: string
   config: PlatformConfig
 }
 
@@ -34,6 +35,7 @@ interface PublishStore {
   checkAuth(id: string): Promise<void>
   checkAllAuth(): Promise<void>
   publish(articleId: number, getPayload: (platformId: string) => Record<string, unknown>): Promise<void>
+  publishOne(articleId: number, platformId: string, getPayload: (platformId: string) => Record<string, unknown>): Promise<void>
   setShowPublishDialog(v: boolean): void
   resetPublishStatus(): void
 }
@@ -132,7 +134,7 @@ export const usePublishStore = create<PublishStore>((set, get) => ({
     set({ isPublishing: true })
     set(s => ({
       platforms: s.platforms.map(p =>
-        p.selected ? { ...p, publishStatus: 'pending' as const } : p
+        p.selected ? { ...p, publishStatus: 'pending' as const, publishUrl: undefined, publishError: undefined, publishMessage: undefined } : p
       ),
     }))
 
@@ -143,7 +145,7 @@ export const usePublishStore = create<PublishStore>((set, get) => ({
         set(s => ({
           platforms: s.platforms.map(p =>
             p.id === platform.id
-              ? { ...p, publishStatus: result.success ? 'success' : 'error', publishUrl: result.url, publishError: result.error }
+              ? { ...p, publishStatus: result.success ? 'success' : 'error', publishUrl: result.url, publishError: result.error, publishMessage: result.message }
               : p
           ),
         }))
@@ -157,7 +159,7 @@ export const usePublishStore = create<PublishStore>((set, get) => ({
         set(s => ({
           platforms: s.platforms.map(p =>
             p.id === platform.id
-              ? { ...p, publishStatus: 'error', publishError: error }
+              ? { ...p, publishStatus: 'error', publishError: error, publishMessage: undefined }
               : p
           ),
         }))
@@ -176,13 +178,60 @@ export const usePublishStore = create<PublishStore>((set, get) => ({
     set({ isPublishing: false })
   },
 
+  async publishOne(articleId, platformId, getPayload) {
+    if (!getExtensionBridge()) return
+    const bridge = getExtensionBridge()!
+    const platform = get().platforms.find(p => p.id === platformId)
+    if (!platform) return
+
+    set({ isPublishing: true })
+    set(s => ({
+      platforms: s.platforms.map(p =>
+        p.id === platformId ? { ...p, publishStatus: 'pending' as const, publishUrl: undefined, publishError: undefined, publishMessage: undefined } : p
+      ),
+    }))
+
+    try {
+      const payload = getPayload(platform.id)
+      const result = await bridge.publish(platform.id, payload)
+      set(s => ({
+        platforms: s.platforms.map(p =>
+          p.id === platform.id
+            ? { ...p, publishStatus: result.success ? 'success' : 'error', publishUrl: result.url, publishError: result.error, publishMessage: result.message }
+            : p
+        ),
+      }))
+      await recordPublishResult(articleId, platform, result)
+    } catch (e) {
+      const error = String(e)
+      set(s => ({
+        platforms: s.platforms.map(p =>
+          p.id === platform.id
+            ? { ...p, publishStatus: 'error', publishError: error, publishMessage: undefined }
+            : p
+        ),
+      }))
+      await db.publishHistory.add({
+        articleId,
+        platform: platform.id,
+        platformName: platform.name,
+        publishedAt: Date.now(),
+        isDraft: platform.config.isDraft ?? true,
+        success: false,
+        error,
+      })
+    } finally {
+      set({ isPublishing: false })
+    }
+  },
+
   setShowPublishDialog(v) {
     set({ showPublishDialog: v })
   },
 
   resetPublishStatus() {
     set(s => ({
-      platforms: s.platforms.map(p => ({ ...p, publishStatus: 'idle', publishUrl: undefined, publishError: undefined })),
+      platforms: s.platforms.map(p => ({ ...p, publishStatus: 'idle', publishUrl: undefined, publishError: undefined, publishMessage: undefined })),
     }))
   },
 }))
@@ -205,6 +254,7 @@ function createPlatformStates(previous: PlatformState[] = []): PlatformState[] {
       publishStatus: prev?.publishStatus ?? 'idle',
       publishUrl: prev?.publishUrl,
       publishError: prev?.publishError,
+      publishMessage: prev?.publishMessage,
       config: { ...defaultConfig(), ...(prev?.config ?? {}) },
     }
   })
@@ -227,7 +277,7 @@ async function persistPlatformConfig(articleId: number, platform: string, config
 async function recordPublishResult(
   articleId: number,
   platform: PlatformState,
-  result: { success: boolean; url?: string; postId?: string; isDraft?: boolean; error?: string }
+  result: { success: boolean; url?: string; postId?: string; isDraft?: boolean; error?: string; message?: string }
 ) {
   await db.publishHistory.add({
     articleId,
@@ -239,5 +289,6 @@ async function recordPublishResult(
     isDraft: result.isDraft ?? platform.config.isDraft ?? true,
     success: result.success,
     error: result.error,
+    message: result.message,
   })
 }

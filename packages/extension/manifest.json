@@ -18,8 +18,12 @@
     "https://*.zhihu.com/*",
     "https://*.bilibili.com/*",
     "https://*.juejin.cn/*",
+    "https://mp.weixin.qq.com/*",
     "https://*.weixin.qq.com/*",
     "https://*.weibo.com/*",
+    "https://*.csdn.net/*",
+    "https://*.csdnimg.cn/*",
+    "https://*.huaweicloud.com/*",
     "https://*.xiaohongshu.com/*"
   ],
   "background": {
