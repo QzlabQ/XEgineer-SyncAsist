@@ -8,32 +8,33 @@
 
 ### Week 1-2：基础框架搭建
 
-- [ ] 初始化 Monorepo（Yarn Workspaces + TypeScript）
-- [ ] 将 Wechatsync `packages/core` 集成为子包
-- [ ] 搭建 Next.js 15 应用骨架（路由、布局）
-- [ ] 集成 Tiptap v2，实现基础富文本编辑
-- [ ] 实现 `packages/renderer` 包骨架（ContentAST 类型定义）
-- [ ] 实现 Tiptap JSON → ContentAST 转换
+- [x] 初始化 Monorepo（Yarn Workspaces + TypeScript）
+- [x] 将 Wechatsync `packages/core` 集成为子包
+- [x] 搭建 Next.js 15 应用骨架（路由、布局）
+- [x] 集成 Tiptap v2，实现基础富文本编辑
+- [x] 实现 `packages/renderer` 包骨架（ContentAST 类型定义）
+- [x] 实现 Tiptap JSON → ContentAST 转换
 
 ### Week 3-4：平台渲染器 + 预览
 
-- [ ] 实现知乎 Renderer（HTML 格式）
-- [ ] 实现 B站 Renderer（HTML 格式）
-- [ ] 实现掘金 Renderer（Markdown 格式）
-- [ ] 实现三栏布局 UI（编辑区 + 预览区 + 左侧面板）
-- [ ] 实现多平台预览 Tab 切换
-- [ ] 实现预览实时更新（debounce）
+- [x] 实现知乎 Renderer（HTML 格式）
+- [x] 实现 B站 Renderer（HTML 格式）
+- [x] 实现掘金 Renderer（Markdown 格式）
+- [x] 实现三栏布局 UI（编辑区 + 预览区 + 左侧面板）
+- [ ] 实现多平台预览 Tab 切换(有bug)
+- [x] 实现预览实时更新（debounce）
 
 ### Week 5-6：扩展桥接 + 发布链路
 
-- [ ] 实现 Chrome Extension 桥接层（Content Script + 消息协议）
-- [ ] 集成 Wechatsync 平台适配器到 Service Worker
-- [ ] 实现发布控制台 UI（平台选择、进度展示、结果展示）
-- [ ] 实现本地文章存储（Dexie.js）
-- [ ] 实现自动保存
-- [ ] 端到端测试：编辑 → 发布到知乎草稿
+- [x] 实现 Chrome Extension 桥接层（Content Script + 消息协议）
+- [x] 集成 Wechatsync 平台适配器到 Service Worker
+- [x] 实现发布控制台 UI（平台选择、进度展示、结果展示）
+- [x] 实现本地文章存储（Dexie.js）
+- [x] 实现自动保存
+- [x] 端到端测试：编辑 → 发布到知乎草稿
 
 **MVP 交付物**：
+
 - 可用的 Web 编辑器
 - 知乎、B站、掘金三个平台的预览和发布
 - Chrome 扩展（本地安装）
@@ -109,12 +110,12 @@
 
 ## 里程碑
 
-| 时间 | 里程碑 |
-|------|--------|
-| +6周 | MVP 上线，支持知乎/B站/掘金发布 |
+| 时间  | 里程碑                              |
+| ----- | ----------------------------------- |
+| +6周  | MVP 上线，支持知乎/B站/掘金发布     |
 | +12周 | 支持微信公众号/小红书，完整平台配置 |
-| +20周 | AI 辅助功能，图片 CDN，定时发布 |
-| +30周 | 团队协作，数据统计 |
+| +20周 | AI 辅助功能，图片 CDN，定时发布     |
+| +30周 | 团队协作，数据统计                  |
 
 ---
 

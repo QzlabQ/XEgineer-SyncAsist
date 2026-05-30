@@ -10,6 +10,7 @@ export default function SettingsPage() {
   const router = useRouter()
   const { platforms, initPlatforms, checkAllAuth } = usePublishStore()
   const [extensionInstalled, setExtensionInstalled] = useState<boolean | null>(null)
+  const [extensionError, setExtensionError] = useState('')
   const [checking, setChecking] = useState(false)
 
   useEffect(() => {
@@ -19,9 +20,14 @@ export default function SettingsPage() {
 
   const checkExtension = async () => {
     const bridge = getExtensionBridge()
-    if (!bridge) { setExtensionInstalled(false); return }
+    if (!bridge) {
+      setExtensionInstalled(false)
+      setExtensionError('当前页面不支持扩展桥接')
+      return
+    }
     const installed = await bridge.isInstalled()
     setExtensionInstalled(installed)
+    setExtensionError(bridge.getLastError())
   }
 
   const handleCheckAll = async () => {
@@ -50,7 +56,16 @@ export default function SettingsPage() {
               <div>
                 <p className="text-sm font-medium text-orange-800">扩展未安装</p>
                 <p className="text-xs text-orange-600 mt-1">需要安装 XEgineer 浏览器扩展才能发布文章</p>
-                <p className="text-xs text-orange-500 mt-2">扩展开发中，请先在本地加载 packages/extension 目录</p>
+                <p className="text-xs text-orange-500 mt-2">请在本地加载 packages/extension/dist 目录，并在重载扩展后刷新当前页面</p>
+                {extensionError && (
+                  <p className="text-xs text-orange-700 mt-2">检测结果：{extensionError}</p>
+                )}
+                <button
+                  onClick={checkExtension}
+                  className="mt-3 text-xs text-orange-700 hover:text-orange-900 underline"
+                >
+                  重新检测
+                </button>
               </div>
             </div>
           )}

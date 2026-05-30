@@ -15,6 +15,7 @@ import TableCell from '@tiptap/extension-table-cell'
 import TableHeader from '@tiptap/extension-table-header'
 import Highlight from '@tiptap/extension-highlight'
 import Typography from '@tiptap/extension-typography'
+import type { EditorView } from '@tiptap/pm/view'
 import { EditorToolbar } from './EditorToolbar'
 
 interface RichEditorProps {
@@ -44,6 +45,22 @@ export function RichEditor({ content, onChange }: RichEditorProps) {
     content: content ? JSON.parse(content) : undefined,
     editorProps: {
       attributes: { class: 'tiptap-editor focus:outline-none' },
+      handlePaste(view, event) {
+        const files = Array.from(event.clipboardData?.files ?? []).filter(file => file.type.startsWith('image/'))
+        if (!files.length) return false
+        event.preventDefault()
+        files.forEach(file => insertImageFile(view, file))
+        return true
+      },
+      handleDrop(view, event, _slice, moved) {
+        if (moved) return false
+        const files = Array.from(event.dataTransfer?.files ?? []).filter(file => file.type.startsWith('image/'))
+        if (!files.length) return false
+        const pos = view.posAtCoords({ left: event.clientX, top: event.clientY })?.pos
+        event.preventDefault()
+        files.forEach(file => insertImageFile(view, file, pos))
+        return true
+      },
     },
     onUpdate({ editor }) {
       onChange(JSON.stringify(editor.getJSON()))
@@ -87,4 +104,22 @@ export function RichEditor({ content, onChange }: RichEditorProps) {
       </div>
     </div>
   )
+}
+
+function insertImageFile(view: EditorView, file: File, pos?: number) {
+  const reader = new FileReader()
+  reader.onload = (event) => {
+    const src = event.target?.result
+    if (typeof src !== 'string') return
+
+    const image = view.state.schema.nodes.image?.create({ src })
+    if (!image) return
+
+    const tr = typeof pos === 'number'
+      ? view.state.tr.insert(pos, image)
+      : view.state.tr.replaceSelectionWith(image)
+
+    view.dispatch(tr.scrollIntoView())
+  }
+  reader.readAsDataURL(file)
 }

@@ -84,7 +84,7 @@ export class ExtensionRuntime implements RuntimeInterface {
             type: chrome.declarativeNetRequest.RuleActionType.MODIFY_HEADERS,
             requestHeaders: Object.entries(rule.headers).map(([header, value]) => ({
               header,
-              value,
+              value: value as string,
               operation: chrome.declarativeNetRequest.HeaderOperation.SET,
             })),
           },
@@ -125,10 +125,10 @@ export class ExtensionRuntime implements RuntimeInterface {
 
   tabs = {
     async query(urlPattern: string) {
-      return chrome.tabs.query({ url: urlPattern })
+      return chrome.tabs.query({ url: urlPattern }) as Promise<Array<{ id: number; url?: string }>>
     },
     async create(url: string, active = false) {
-      return chrome.tabs.create({ url, active })
+      return chrome.tabs.create({ url, active }) as Promise<{ id: number }>
     },
     async waitForLoad(tabId: number, timeout = 30000): Promise<void> {
       return new Promise((resolve, reject) => {
@@ -143,7 +143,11 @@ export class ExtensionRuntime implements RuntimeInterface {
         chrome.tabs.onUpdated.addListener(listener)
       })
     },
-    async executeScript<T, A extends unknown[]>(tabId: number, func: (...args: A) => T, args: A): Promise<T> {
+    async executeScript<T, A extends unknown[]>(
+      tabId: number,
+      func: (...args: A) => T | Promise<T>,
+      args: A
+    ): Promise<T> {
       const results = await chrome.scripting.executeScript({ target: { tabId }, func, args })
       return results[0]?.result as T
     },

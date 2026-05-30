@@ -12,7 +12,9 @@
     "tabs"
   ],
   "host_permissions": [
-    "http://localhost:3210/*",
+    "http://localhost/*",
+    "http://127.0.0.1/*",
+    "http://10.135.224.249/*",
     "https://*.zhihu.com/*",
     "https://*.bilibili.com/*",
     "https://*.juejin.cn/*",
@@ -26,7 +28,7 @@
   },
   "content_scripts": [
     {
-      "matches": ["http://localhost:3210/*"],
+      "matches": ["http://localhost/*", "http://127.0.0.1/*", "http://10.135.224.249/*"],
       "js": ["src/bridge/content-script.ts"],
       "run_at": "document_start"
     }

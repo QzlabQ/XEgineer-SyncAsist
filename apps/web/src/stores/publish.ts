@@ -2,7 +2,7 @@
 
 import { create } from 'zustand'
 import { getAllRenderers } from '@xegineer/renderer'
-import type { PlatformConfig, PlatformRenderer } from '@xegineer/renderer'
+import type { MetaField, PlatformConfig, PlatformRenderer } from '@xegineer/renderer'
 import { db } from '@/lib/db'
 import { getExtensionBridge } from '@/lib/extension-bridge'
 
@@ -11,6 +11,7 @@ export type PublishStatus = 'idle' | 'pending' | 'success' | 'error'
 export interface PlatformState {
   id: string
   name: string
+  schema: MetaField[]
   selected: boolean
   authStatus: 'unknown' | 'authenticated' | 'unauthenticated'
   username?: string
@@ -22,10 +23,12 @@ export interface PlatformState {
 
 interface PublishStore {
   platforms: PlatformState[]
+  currentArticleId: number | null
   isPublishing: boolean
   showPublishDialog: boolean
 
   initPlatforms(): void
+  loadConfigs(articleId: number): Promise<void>
   togglePlatform(id: string): void
   updateConfig(id: string, config: Partial<PlatformConfig>): void
   checkAuth(id: string): Promise<void>
@@ -37,21 +40,37 @@ interface PublishStore {
 
 export const usePublishStore = create<PublishStore>((set, get) => ({
   platforms: [],
+  currentArticleId: null,
   isPublishing: false,
   showPublishDialog: false,
 
   initPlatforms() {
-    const renderers = getAllRenderers()
-    set({
-      platforms: renderers.map((r: PlatformRenderer) => ({
-        id: r.platformId,
-        name: r.platformName,
-        selected: false,
-        authStatus: 'unknown' as const,
-        publishStatus: 'idle' as const,
-        config: { isDraft: true, tags: [], categories: [] },
+    set(s => ({ platforms: createPlatformStates(s.platforms) }))
+  },
+
+  async loadConfigs(articleId) {
+    if (!get().platforms.length) {
+      get().initPlatforms()
+    }
+
+    const rows = await db.platformConfigs.where('articleId').equals(articleId).toArray()
+    const configs = new Map<string, PlatformConfig>()
+
+    for (const row of rows) {
+      try {
+        configs.set(row.platform, JSON.parse(row.config) as PlatformConfig)
+      } catch {
+        configs.set(row.platform, defaultConfig())
+      }
+    }
+
+    set(s => ({
+      currentArticleId: articleId,
+      platforms: createPlatformStates(s.platforms).map(p => ({
+        ...p,
+        config: { ...defaultConfig(), ...(configs.get(p.id) ?? {}) },
       })),
-    })
+    }))
   },
 
   togglePlatform(id) {
@@ -63,11 +82,19 @@ export const usePublishStore = create<PublishStore>((set, get) => ({
   },
 
   updateConfig(id, config) {
+    let nextConfig: PlatformConfig | null = null
     set(s => ({
-      platforms: s.platforms.map(p =>
-        p.id === id ? { ...p, config: { ...p.config, ...config } } : p
-      ),
+      platforms: s.platforms.map(p => {
+        if (p.id !== id) return p
+        nextConfig = { ...p.config, ...config }
+        return { ...p, config: nextConfig }
+      }),
     }))
+
+    const articleId = get().currentArticleId
+    if (articleId && nextConfig) {
+      void persistPlatformConfig(articleId, id, nextConfig)
+    }
   },
 
   async checkAuth(id) {
@@ -121,25 +148,28 @@ export const usePublishStore = create<PublishStore>((set, get) => ({
           ),
         }))
         if (result.success) {
-          await db.publishHistory.add({
-            articleId,
-            platform: platform.id,
-            platformName: platform.name,
-            publishedAt: Date.now(),
-            url: result.url,
-            postId: result.postId,
-            isDraft: result.isDraft,
-            success: true,
-          })
+          await recordPublishResult(articleId, platform, result)
+        } else {
+          await recordPublishResult(articleId, platform, result)
         }
       } catch (e) {
+        const error = String(e)
         set(s => ({
           platforms: s.platforms.map(p =>
             p.id === platform.id
-              ? { ...p, publishStatus: 'error', publishError: String(e) }
+              ? { ...p, publishStatus: 'error', publishError: error }
               : p
           ),
         }))
+        await db.publishHistory.add({
+          articleId,
+          platform: platform.id,
+          platformName: platform.name,
+          publishedAt: Date.now(),
+          isDraft: platform.config.isDraft ?? true,
+          success: false,
+          error,
+        })
       }
     }))
 
@@ -156,3 +186,58 @@ export const usePublishStore = create<PublishStore>((set, get) => ({
     }))
   },
 }))
+
+function defaultConfig(): PlatformConfig {
+  return { isDraft: true, tags: [], categories: [] }
+}
+
+function createPlatformStates(previous: PlatformState[] = []): PlatformState[] {
+  const renderers = getAllRenderers()
+  return renderers.map((r: PlatformRenderer) => {
+    const prev = previous.find(p => p.id === r.platformId)
+    return {
+      id: r.platformId,
+      name: r.platformName,
+      schema: r.metaSchema,
+      selected: prev?.selected ?? false,
+      authStatus: prev?.authStatus ?? 'unknown',
+      username: prev?.username,
+      publishStatus: prev?.publishStatus ?? 'idle',
+      publishUrl: prev?.publishUrl,
+      publishError: prev?.publishError,
+      config: { ...defaultConfig(), ...(prev?.config ?? {}) },
+    }
+  })
+}
+
+async function persistPlatformConfig(articleId: number, platform: string, config: PlatformConfig) {
+  const existing = await db.platformConfigs
+    .where('[articleId+platform]')
+    .equals([articleId, platform])
+    .first()
+
+  const record = { articleId, platform, config: JSON.stringify(config) }
+  if (existing?.id) {
+    await db.platformConfigs.update(existing.id, record)
+  } else {
+    await db.platformConfigs.add(record)
+  }
+}
+
+async function recordPublishResult(
+  articleId: number,
+  platform: PlatformState,
+  result: { success: boolean; url?: string; postId?: string; isDraft?: boolean; error?: string }
+) {
+  await db.publishHistory.add({
+    articleId,
+    platform: platform.id,
+    platformName: platform.name,
+    publishedAt: Date.now(),
+    url: result.url,
+    postId: result.postId,
+    isDraft: result.isDraft ?? platform.config.isDraft ?? true,
+    success: result.success,
+    error: result.error,
+  })
+}

@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { PenLine, List, Settings, Save, Loader2, Send } from 'lucide-react'
+import { PenLine, List, Settings, Save, Loader2, Send, History } from 'lucide-react'
 import { useArticleStore } from '@/stores/article'
 import { usePublishStore } from '@/stores/publish'
 
@@ -33,6 +33,13 @@ export function TopNav() {
           >
             <Settings size={14} />
             设置
+          </button>
+          <button
+            onClick={() => router.push('/history')}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <History size={14} />
+            发布历史
           </button>
         </nav>
       </div>

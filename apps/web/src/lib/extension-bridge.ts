@@ -42,6 +42,7 @@ export interface PublishResult {
 class ExtensionBridge {
   private pending = new Map<string, { resolve: (v: unknown) => void; reject: (e: Error) => void }>()
   private installed: boolean | null = null
+  private lastError = ''
 
   constructor() {
     if (typeof window !== 'undefined') {
@@ -62,7 +63,7 @@ class ExtensionBridge {
 
   private send<T>(type: BridgeMessageType, payload: unknown, timeoutMs = 15000): Promise<T> {
     return new Promise((resolve, reject) => {
-      const requestId = crypto.randomUUID()
+      const requestId = createRequestId()
       this.pending.set(requestId, { resolve: resolve as (v: unknown) => void, reject })
       const msg: BridgeMessage = { source: 'XEGINEER_WEBAPP', type, requestId, payload }
       window.postMessage(msg, '*')
@@ -76,14 +77,20 @@ class ExtensionBridge {
   }
 
   async isInstalled(): Promise<boolean> {
-    if (this.installed !== null) return this.installed
+    if (this.installed === true) return true
     try {
-      await this.send('LIST_PLATFORMS', {}, 2000)
+      await this.send('LIST_PLATFORMS', {}, 5000)
       this.installed = true
-    } catch {
+      this.lastError = ''
+    } catch (error) {
       this.installed = false
+      this.lastError = error instanceof Error ? error.message : '扩展未响应，请确认内容脚本已注入当前页面'
     }
     return this.installed
+  }
+
+  getLastError(): string {
+    return this.lastError
   }
 
   async checkAuth(platformId: string): Promise<AuthStatus> {
@@ -104,4 +111,18 @@ export function getExtensionBridge(): ExtensionBridge | null {
   if (typeof window === 'undefined') return null
   if (!_bridge) _bridge = new ExtensionBridge()
   return _bridge
+}
+
+function createRequestId(): string {
+  if (typeof globalThis.crypto?.randomUUID === 'function') {
+    return globalThis.crypto.randomUUID()
+  }
+
+  if (typeof globalThis.crypto?.getRandomValues === 'function') {
+    const values = new Uint32Array(4)
+    globalThis.crypto.getRandomValues(values)
+    return `req_${Date.now().toString(36)}_${Array.from(values, value => value.toString(36)).join('')}`
+  }
+
+  return `req_${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}`
 }

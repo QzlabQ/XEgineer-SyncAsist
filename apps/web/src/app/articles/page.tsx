@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, FileText, Trash2 } from 'lucide-react'
+import { Plus, FileText, Trash2, History } from 'lucide-react'
 import { useArticleStore } from '@/stores/article'
 
 export default function ArticlesPage() {
@@ -28,13 +28,22 @@ export default function ArticlesPage() {
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
         <h1 className="text-xl font-semibold text-gray-900">我的文章</h1>
-        <button
-          onClick={handleCreate}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          <Plus size={16} />
-          新建文章
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => router.push('/history')}
+            className="flex items-center gap-2 px-3 py-2 text-gray-600 text-sm rounded-lg hover:bg-gray-100 transition-colors"
+          >
+            <History size={16} />
+            发布历史
+          </button>
+          <button
+            onClick={handleCreate}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <Plus size={16} />
+            新建文章
+          </button>
+        </div>
       </header>
 
       <main className="max-w-3xl mx-auto px-6 py-8">
