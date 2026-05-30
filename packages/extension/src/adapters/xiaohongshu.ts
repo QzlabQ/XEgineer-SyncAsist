@@ -43,7 +43,8 @@ export class XiaohongshuAdapter extends BaseAdapter {
         tab.id,
         () => (async () => {
           try {
-            const resp = await fetch('/api/galaxy/creator/home/personal_info', {
+            // galaxy API is on creator.xiaohongshu.com
+            const resp = await fetch('https://creator.xiaohongshu.com/api/galaxy/creator/home/personal_info', {
               credentials: 'include',
               headers: { Accept: 'application/json' },
             })
@@ -95,50 +96,35 @@ export class XiaohongshuAdapter extends BaseAdapter {
       >(
         tab.id,
         (title: string, descText: string, hashTags: Array<{name: string; type: number}>) => (async () => {
-          // Try web_api/sns/v2/note first (current API from JS bundle analysis)
-          const paths = [
-            '/web_api/sns/v2/note',
-            '/web_api/sns/capa/postgw/note/update',
+          // edith.xiaohongshu.com = sns/web_api gateway (confirmed 401 = exists, needs auth)
+          // creator.xiaohongshu.com = galaxy API gateway
+          const E = 'https://edith.xiaohongshu.com'
+          const C = 'https://creator.xiaohongshu.com'
+
+          const attempts = [
+            // Create new note (edith gateway)
+            { url: E + '/web_api/sns/v2/note', method: 'POST', body: JSON.stringify({ title, desc: descText, type: 1, note_type: 1, hash_tag: hashTags, image_info_list: [], ats: [], is_private: false, post_loc: {}, business_binds: {} }) },
+            // v1 create
+            { url: E + '/api/sns/v1/note', method: 'POST', body: JSON.stringify({ title, desc: descText, type: 1, hash_tag: hashTags, image_info_list: [], ats: [], post_loc: {} }) },
+            // Galaxy create
+            { url: C + '/api/galaxy/creator/note/post', method: 'POST', body: JSON.stringify({ title, desc: descText, type: 1, hash_tag: hashTags, ats: [], image_info_list: [], is_private: false, post_loc: {}, business_binds: {} }) },
           ]
-          for (const path of paths) {
+
+          for (const {url, method, body} of attempts) {
             try {
-              const resp = await fetch(path, {
-                method: 'POST',
-                credentials: 'include',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  title,
-                  desc: descText,
-                  type: 1,
-                  note_type: 1,
-                  hash_tag: hashTags,
-                  image_info_list: [],
-                  ats: [],
-                  is_private: false,
-                  post_loc: {},
-                  business_binds: {},
-                }),
-              })
-              if (!resp.ok) {
-                // Try next path
-                if (resp.status === 404) continue
-                const errText = await resp.text()
-                return { success: false, error: `HTTP ${resp.status}: ${errText.slice(0, 200)}` }
-              }
-              const data = await resp.json() as {
-                success?: boolean; code?: number; msg?: string
-                data?: { note_id?: string; id?: string; noteId?: string }
-              }
+              const resp = await fetch(url, { method, credentials: 'include', headers: { 'Content-Type': 'application/json' }, body })
+              if (resp.status === 404) continue // try next
+              const text = await resp.text()
+              if (!resp.ok) return { success: false, error: `[${url.split('/')[2]}${new URL(url).pathname}] HTTP ${resp.status}: ${text.slice(0, 150)}` }
+              const data = JSON.parse(text) as { success?: boolean; code?: number; msg?: string; data?: { note_id?: string; id?: string; noteId?: string } }
               if (data.success || data.code === 0) {
-                const noteId = data.data?.note_id ?? data.data?.id ?? data.data?.noteId ?? ''
-                return { success: true, noteId }
+                const id = data.data?.note_id ?? data.data?.id ?? data.data?.noteId ?? ''
+                return { success: true, noteId: id }
               }
               return { success: false, error: data.msg || `code=${data.code}` }
-            } catch (e) {
-              // Try next path
-            }
+            } catch (e) { /* try next */ }
           }
-          return { success: false, error: '所有 API 路径都不可用' }
+          return { success: false, error: '所有 API 路径都不可用 (edith + creator)' }
         })(),
         [article.title || '无标题', desc, tags],
         'MAIN'
