@@ -99,18 +99,17 @@ export class XiaohongshuAdapter extends BaseAdapter {
       >(
         tab.id,
         (title: string, descText: string, hashTags: Array<{name: string; type: number}>) => (async () => {
-          // edith.xiaohongshu.com = sns/web_api gateway (confirmed 401 = exists, needs auth)
-          // creator.xiaohongshu.com = galaxy API gateway
-          const E = 'https://edith.xiaohongshu.com'
-          const C = 'https://creator.xiaohongshu.com'
+          // Try to use the page's own HTTP infrastructure
+          // The creator page loads Axios and has configured API clients
+          // We try raw XHR with different body formats
 
           const attempts = [
-            // Create new note (edith gateway)
-            { url: E + '/web_api/sns/v2/note', method: 'POST', body: JSON.stringify({ title, desc: descText, type: 1, note_type: 1, hash_tag: hashTags, image_info_list: [], ats: [], is_private: false, post_loc: {}, business_binds: {} }) },
-            // v1 create
-            { url: E + '/api/sns/v1/note', method: 'POST', body: JSON.stringify({ title, desc: descText, type: 1, hash_tag: hashTags, image_info_list: [], ats: [], post_loc: {} }) },
-            // Galaxy create
-            { url: C + '/api/galaxy/creator/note/post', method: 'POST', body: JSON.stringify({ title, desc: descText, type: 1, hash_tag: hashTags, ats: [], image_info_list: [], is_private: false, post_loc: {}, business_binds: {} }) },
+            { url: 'https://edith.xiaohongshu.com/web_api/sns/v2/note', method: 'POST',
+              body: JSON.stringify({ title: title, desc: descText, type: 1, note_type: 1, hash_tag: hashTags, image_info_list: [], ats: [], post_loc: {} }) },
+            { url: 'https://edith.xiaohongshu.com/web_api/sns/capa/postgw/note/update', method: 'PUT',
+              body: JSON.stringify({ title: title, desc: descText, type: 1, note_type: 1, hash_tag: hashTags, image_info_list: [], ats: [], post_loc: {}, business_binds: {} }) },
+            { url: 'https://creator.xiaohongshu.com/api/galaxy/creator/note/post', method: 'POST',
+              body: JSON.stringify({ title: title, desc: descText, type: 1, hash_tag: hashTags, ats: [], image_info_list: [], is_private: false, post_loc: {}, business_binds: {} }) },
           ]
 
           for (const {url, method, body} of attempts) {
