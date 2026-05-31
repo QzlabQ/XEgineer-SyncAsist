@@ -9,7 +9,7 @@
 ### Week 1-2：基础框架搭建
 
 - [x] 初始化 Monorepo（Yarn Workspaces + TypeScript）
-- [x] 将 平台适配层 `packages/core` 集成为子包
+- [x] 集成平台适配框架（BaseAdapter/CodeAdapter/RuntimeInterface）
 - [x] 搭建 Next.js 15 应用骨架（路由、布局）
 - [x] 集成 Tiptap v2，实现基础富文本编辑
 - [x] 实现 `packages/renderer` 包骨架（ContentAST 类型定义）
@@ -27,7 +27,7 @@
 ### Week 5-6：扩展桥接 + 发布链路
 
 - [x] 实现 Chrome Extension 桥接层（Content Script + 消息协议）
-- [x] 集成 平台适配层 平台适配器到 Service Worker
+- [x] 集成平台适配器到 Service Worker（知乎、B站、掘金、微信公众号、CSDN）
 - [x] 实现发布控制台 UI（平台选择、进度展示、结果展示）
 - [x] 实现本地文章存储（Dexie.js）
 - [x] 实现自动保存

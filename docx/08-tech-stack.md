@@ -26,7 +26,7 @@
 ## 2. 前端框架：Next.js 15（App Router）
 
 **选型理由**：
-- React 生态，与 平台适配层 技术栈一致（React 18 + TypeScript）
+- React 生态，技术栈成熟（React 18 + TypeScript）
 - App Router 支持 Server Components，首屏加载快
 - 文件路由清晰，`/editor/[id]`、`/articles` 等路由自然映射
 - 内置图片优化、字体优化
@@ -39,7 +39,7 @@
 ## 3. 状态管理：Zustand
 
 **选型理由**：
-- 平台适配层 已在使用，保持技术栈一致
+- 平台适配器模块已在使用，保持技术栈一致
 - 轻量（< 1KB），无样板代码
 - 支持 devtools，调试方便
 - 与 React 18 并发模式兼容
@@ -49,7 +49,7 @@
 ## 4. 样式：Tailwind CSS
 
 **选型理由**：
-- 平台适配层 已在使用，保持一致
+- 平台适配器模块已在使用，保持一致
 - 原子化 CSS，无命名困扰
 - 与 shadcn/ui 组件库配合使用，快速构建 UI
 
@@ -119,9 +119,9 @@ db.version(1).stores({
 ├── TypeScript
 └── CRXJS (构建)
 
-核心库（复用 平台适配层）
-├── packages/core (29+ 平台适配器)
-└── packages/renderer (格式渲染器，新增)
+核心库
+├── platform-adapters (平台适配框架，含 5 个平台实现)
+└── packages/renderer (格式渲染器)
 
 后端（可选，P2 阶段）
 ├── Node.js 20+

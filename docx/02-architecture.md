@@ -70,7 +70,7 @@
 
 **职责**：通过 Chrome 扩展调用各平台 API 完成实际发布
 
-- 复用 平台适配层 `packages/core` 全部平台适配器
+- 基于自研 BaseAdapter/CodeAdapter 平台适配框架，通过 RuntimeInterface 抽象与 Chrome API 交互
 - Web App 通过 postMessage 与扩展通信
 - 扩展 Service Worker 执行 API 调用（携带浏览器 Cookie）
 
@@ -83,29 +83,22 @@
 ```
 xegineer/
 ├── packages/
-│   ├── core/                    # 从 平台适配层 复用（不改动）
-│   │   ├── src/adapters/        # 29+ 平台适配器
-│   │   ├── src/runtime/         # RuntimeInterface 抽象
-│   │   └── src/types.ts         # Article、SyncResult 等核心类型
-│   │
-│   ├── renderer/                # 【新增】平台格式渲染器
+│   ├── renderer/                # 平台格式渲染器
 │   │   ├── src/ast/             # ContentAST 类型定义
 │   │   ├── src/converters/      # Tiptap JSON → ContentAST
 │   │   ├── src/platforms/       # 各平台 Renderer 实现
 │   │   └── src/index.ts
 │   │
-│   ├── editor/                  # 【新增】编辑器 React 组件库
-│   │   ├── src/components/
-│   │   │   ├── Editor/          # Tiptap 封装
-│   │   │   ├── Preview/         # 多平台预览面板
-│   │   │   ├── PublishPanel/    # 发布控制台
-│   │   │   └── PlatformConfig/  # 平台专属配置 UI
-│   │   └── src/stores/          # Zustand 状态
-│   │
-│   └── extension/               # 从 平台适配层 扩展
-│       ├── src/background/      # Service Worker（复用）
-│       ├── src/bridge/          # 【新增】与 Web App 通信协议
-│       └── src/runtime/         # Extension RuntimeInterface（复用）
+│   └── extension/               # Chrome 扩展（Manifest v3）
+│       ├── src/platform-adapters/  # 平台适配框架（BaseAdapter, CodeAdapter, RuntimeInterface）
+│       │   ├── adapters/        # 适配器基类与平台实现
+│       │   ├── runtime/         # RuntimeInterface 抽象
+│       │   ├── lib/             # 工具库（签名、日志、图片解析）
+│       │   └── types.ts         # Article, SyncResult 等核心类型
+│       ├── src/adapters/        # 自定义平台适配器（小红书、简书）
+│       ├── src/background/      # Service Worker，平台发布入口
+│       ├── src/bridge/          # Content Script，Web App ↔ Service Worker 桥接
+│       └── src/runtime/         # ExtensionRuntime（Chrome API 实现）
 │
 ├── apps/
 │   └── web/                     # Next.js 15 应用

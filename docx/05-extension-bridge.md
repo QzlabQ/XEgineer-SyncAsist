@@ -1,6 +1,6 @@
 # 浏览器扩展桥接层设计
 
-本文档描述 Web App 与 Chrome Extension 之间的通信协议，以及如何复用 平台适配层 的平台适配器。
+本文档描述 Web App 与 Chrome Extension 之间的通信协议，以及平台适配器框架的使用方式。
 
 ---
 
@@ -15,7 +15,7 @@ Content Script（注入到 Web App 页面）
     │
     │  chrome.runtime.sendMessage
     ▼
-Service Worker（运行 平台适配层 平台适配器）
+Service Worker（运行平台适配器）
     │
     │  fetch（携带平台 Cookie）
     ▼
@@ -202,7 +202,7 @@ window.addEventListener('message', (event) => {
 ## 5. Service Worker 实现
 
 ```typescript
-// packages/extension/src/background/index.ts（在 平台适配层 基础上扩展）
+// packages/extension/src/background/index.ts（扩展入口）
 
 import { adapters } from '@xegineer/core'
 import { ExtensionRuntime } from '../runtime/extension'
@@ -257,20 +257,18 @@ async function handleMessage(message: XEgineerMessage): Promise<XEgineerResponse
 
 ---
 
-## 6. 与 平台适配层 的复用关系
+## 6. 平台适配框架
 
-| 模块 | 复用策略 |
-|------|----------|
-| `packages/core/src/adapters/` | 直接复用，不修改 |
-| `packages/core/src/runtime/interface.ts` | 直接复用 |
-| `packages/extension/src/runtime/extension.ts` | 直接复用 |
-| `packages/mcp-server/src/ws-bridge.ts` | 参考实现，用于服务端模式 |
-| `packages/extension/src/background/index.ts` | 在现有基础上扩展消息处理 |
+| 模块 | 说明 |
+|------|------|
+| `platform-adapters/adapters/` | BaseAdapter/CodeAdapter 基类与平台适配器实现 |
+| `platform-adapters/runtime/interface.ts` | RuntimeInterface 抽象（支持扩展和 Node 两种环境） |
+| `src/runtime/extension.ts` | ExtensionRuntime — RuntimeInterface 的 Chrome API 实现 |
+| `src/background/index.ts` | Service Worker 消息处理入口 |
 
-新增的文件：
-- `packages/extension/src/bridge/content-script.ts`（新增）
-- `packages/extension/src/bridge/protocol.ts`（新增）
-- `packages/editor/src/lib/extension-bridge.ts`（新增）
+桥接层文件：
+- `src/bridge/content-script.ts` — Content Script，桥接 Web App 与 Service Worker
+- `apps/web/src/lib/extension-bridge.ts` — Web App 端通信协议封装
 
 ---
 
