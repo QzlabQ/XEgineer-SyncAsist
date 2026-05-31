@@ -7,6 +7,10 @@ export type BridgeMessageType =
   | 'LIST_PLATFORMS'
   | 'CHECK_AUTH'
   | 'PUBLISH'
+  | 'SCHEDULE_PUBLISH'
+  | 'CANCEL_SCHEDULED_PUBLISH'
+  | 'RETRY_SCHEDULED_PUBLISH'
+  | 'LIST_SCHEDULED_PUBLISHES'
 
 export interface BridgeMessage {
   source: 'XEGINEER_WEBAPP'
@@ -38,6 +42,32 @@ export interface PublishResult {
   isDraft: boolean
   error?: string
   message?: string
+}
+
+export interface ScheduledPublishTarget {
+  platformId: string
+  platformName: string
+  article: Record<string, unknown>
+}
+
+export interface ScheduledPublishJob {
+  id: string
+  articleId?: number
+  articleTitle: string
+  scheduledAt: number
+  createdAt: number
+  updatedAt: number
+  status: 'scheduled' | 'draft_ready' | 'running' | 'publishing' | 'success' | 'error' | 'cancelled'
+  targets: ScheduledPublishTarget[]
+  error?: string
+  results?: Array<PublishResult & { platformName: string }>
+}
+
+export interface SchedulePublishRequest {
+  articleId?: number
+  articleTitle: string
+  scheduledAt: number
+  targets: ScheduledPublishTarget[]
 }
 
 class ExtensionBridge {
@@ -100,6 +130,22 @@ class ExtensionBridge {
 
   async publish(platformId: string, article: Record<string, unknown>): Promise<PublishResult> {
     return this.send('PUBLISH', { platformId, article }, 30000)
+  }
+
+  async schedulePublish(request: SchedulePublishRequest): Promise<ScheduledPublishJob> {
+    return this.send('SCHEDULE_PUBLISH', request, 120000)
+  }
+
+  async cancelScheduledPublish(jobId: string): Promise<ScheduledPublishJob> {
+    return this.send('CANCEL_SCHEDULED_PUBLISH', { jobId }, 15000)
+  }
+
+  async retryScheduledPublish(jobId: string): Promise<ScheduledPublishJob> {
+    return this.send('RETRY_SCHEDULED_PUBLISH', { jobId }, 120000)
+  }
+
+  async listScheduledPublishes(): Promise<ScheduledPublishJob[]> {
+    return this.send('LIST_SCHEDULED_PUBLISHES', {}, 15000)
   }
 }
 

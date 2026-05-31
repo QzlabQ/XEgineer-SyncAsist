@@ -1,16 +1,24 @@
 'use client'
 
-import { AlertCircle, CheckCircle, XCircle, Loader2, ExternalLink, RotateCcw } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { AlertCircle, CheckCircle, XCircle, Loader2, ExternalLink, RotateCcw, CalendarClock } from 'lucide-react'
 import { usePublishStore } from '@/stores/publish'
 import { useArticleStore } from '@/stores/article'
+import { db } from '@/lib/db'
+import { getExtensionBridge } from '@/lib/extension-bridge'
 import { tiptapToAST, getRenderer } from '@xegineer/renderer'
 
 export function PublishDialog() {
   const { platforms, isPublishing, showPublishDialog, setShowPublishDialog, publish, publishOne, resetPublishStatus } = usePublishStore()
   const { current } = useArticleStore()
+  const [scheduledAtValue, setScheduledAtValue] = useState('')
+  const [scheduling, setScheduling] = useState(false)
+  const [scheduleError, setScheduleError] = useState('')
+  const [scheduleMessage, setScheduleMessage] = useState('')
 
   const selected = platforms.filter(p => p.selected)
   const hasResults = selected.some(p => p.publishStatus !== 'idle' && p.publishStatus !== 'pending')
+  const minScheduleValue = useMemo(() => toDatetimeLocalValue(Date.now() + 60 * 1000), [])
 
   const buildPayload = (platformId: string) => {
     if (!current) return {}
@@ -32,9 +40,67 @@ export function PublishDialog() {
     await publishOne(current.id, platformId, buildPayload)
   }
 
+  const handleSchedule = async () => {
+    if (!current?.id || selected.length === 0) return
+
+    const scheduledAt = new Date(scheduledAtValue).getTime()
+    if (!scheduledAtValue || !Number.isFinite(scheduledAt) || scheduledAt <= Date.now()) {
+      setScheduleMessage('')
+      setScheduleError('请选择未来的发布时间')
+      return
+    }
+
+    const bridge = getExtensionBridge()
+    if (!bridge) {
+      setScheduleMessage('')
+      setScheduleError('未检测到浏览器扩展，无法创建后台定时任务')
+      return
+    }
+
+    setScheduling(true)
+    setScheduleError('')
+    setScheduleMessage('')
+
+    try {
+      const targets = selected.map(platform => ({
+        platformId: platform.id,
+        platformName: platform.name,
+        article: buildPayload(platform.id),
+      }))
+
+      const job = await bridge.schedulePublish({
+        articleId: current.id,
+        articleTitle: current.title,
+        scheduledAt,
+        targets,
+      })
+
+      await db.scheduledPublishes.add({
+        jobId: job.id,
+        articleId: current.id,
+        articleTitle: current.title,
+        platforms: selected.map(platform => platform.id),
+        platformNames: selected.map(platform => platform.name),
+        scheduledAt,
+        createdAt: job.createdAt,
+        status: job.status,
+        results: JSON.stringify(job.results ?? []),
+        error: job.error,
+      })
+
+      setScheduleMessage(`已创建平台草稿，并安排 ${formatScheduleTime(scheduledAt)} 发布；草稿链接可在发布历史查看`)
+    } catch (error) {
+      setScheduleError(error instanceof Error ? error.message : String(error))
+    } finally {
+      setScheduling(false)
+    }
+  }
+
   const handleClose = () => {
     setShowPublishDialog(false)
     resetPublishStatus()
+    setScheduleError('')
+    setScheduleMessage('')
   }
 
   if (!showPublishDialog) return null
@@ -103,8 +169,32 @@ export function PublishDialog() {
           )}
 
           {!hasResults && (
-            <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-              <p className="text-xs text-blue-700">默认保存为草稿，请在各平台确认后手动发布</p>
+            <div className="mt-4 space-y-3">
+              <div className="p-3 bg-blue-50 rounded-lg">
+                <p className="text-xs text-blue-700">立即发布会先保存为草稿；定时发布会先创建平台草稿，到点再尝试发布这份草稿</p>
+              </div>
+
+              {selected.length > 0 && (
+                <div className="p-3 rounded-lg border border-gray-200 bg-gray-50">
+                  <label className="flex items-center gap-2 text-xs font-medium text-gray-600 mb-2">
+                    <CalendarClock size={14} />
+                    定时发布
+                  </label>
+                  <input
+                    type="datetime-local"
+                    min={minScheduleValue}
+                    value={scheduledAtValue}
+                    onChange={event => {
+                      setScheduledAtValue(event.target.value)
+                      setScheduleError('')
+                      setScheduleMessage('')
+                    }}
+                    className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:border-blue-400"
+                  />
+                  {scheduleMessage && <p className="text-xs text-green-600 mt-2">{scheduleMessage}</p>}
+                  {scheduleError && <p className="text-xs text-red-500 mt-2">{scheduleError}</p>}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -117,17 +207,42 @@ export function PublishDialog() {
             {hasResults ? '关闭' : '取消'}
           </button>
           {!hasResults && selected.length > 0 && (
-            <button
-              onClick={handlePublish}
-              disabled={isPublishing}
-              className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-            >
-              {isPublishing && <Loader2 size={14} className="animate-spin" />}
-              确认发布
-            </button>
+            <>
+              <button
+                onClick={handleSchedule}
+                disabled={scheduling || isPublishing || !scheduledAtValue}
+                className="px-4 py-2 text-sm text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+              >
+                {scheduling ? <Loader2 size={14} className="animate-spin" /> : <CalendarClock size={14} />}
+                创建草稿并定时
+              </button>
+              <button
+                onClick={handlePublish}
+                disabled={isPublishing || scheduling}
+                className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+              >
+                {isPublishing && <Loader2 size={14} className="animate-spin" />}
+                确认发布
+              </button>
+            </>
           )}
         </div>
       </div>
     </div>
   )
+}
+
+function toDatetimeLocalValue(timestamp: number): string {
+  const date = new Date(timestamp)
+  const pad = (value: number) => String(value).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
+function formatScheduleTime(timestamp: number): string {
+  return new Intl.DateTimeFormat('zh-CN', {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(timestamp)
 }
