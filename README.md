@@ -8,6 +8,13 @@
 
 github issue: https://github.com/QzlabQ/XEgineer-SyncAsist/issues/1
 
+展示视频：
+
+
+https://github.com/user-attachments/assets/9d059914-92e6-40dc-b1df-c47f3e03f1f6
+
+
+
 ---
 
 ## 功能特性
