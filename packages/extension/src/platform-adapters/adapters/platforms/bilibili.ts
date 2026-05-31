@@ -233,9 +233,6 @@ export class BilibiliAdapter extends CodeAdapter {
   }
 
   private isAllowedContentImage(src: string): boolean {
-    // Keep data URIs as fallback — better than empty images
-    if (src.startsWith('data:')) return true
-
     if (!/^https?:\/\//i.test(src)) return false
 
     try {
@@ -301,65 +298,84 @@ export class BilibiliAdapter extends CodeAdapter {
       throw new Error('CSRF token 未获取')
     }
 
-    // Convert to Blob (handles both data URIs and remote URLs)
-    const blob = await this.srcToBlob(src)
-
-    // Use multipart form data for reliable large image upload
-    const formData = new FormData()
-    formData.append('file', blob, `image.${this.guessImageExt(blob)}`)
-    formData.append('csrf', this.csrf)
+    // Download the image and convert to data URI for upload
+    let dataUri = src
+    if (!dataUri.startsWith('data:')) {
+      const imageResponse = await this.runtime.fetch(src)
+      if (!imageResponse.ok) {
+        throw new Error('图片下载失败: ' + src)
+      }
+      const imageBlob = await imageResponse.blob()
+      dataUri = await this.blobToDataUri(imageBlob)
+    }
 
     const uploadUrl = 'https://api.bilibili.com/x/article/creative/article/upcover'
+
+    // Try multipart FormData first (handles large images better)
+    try {
+      const blob = await this.dataUriToBlob(dataUri)
+      const formData = new FormData()
+      formData.append('cover', blob, `image.${this.guessImageExt(blob)}`)
+
+      const uploadResponse = await this.runtime.fetch(uploadUrl, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      })
+
+      const res = await uploadResponse.json() as {
+        code: number; message?: string; msg?: string
+        data?: { url: string; size?: number }
+      }
+
+      if (res.code === 0 && res.data?.url) {
+        logger.debug('Bilibili image uploaded via FormData')
+        return { url: this.normalizeBilibiliImageUrl(res.data.url), attrs: res.data.size ? { size: String(res.data.size) } : undefined }
+      }
+
+      logger.debug('FormData upload returned non-zero, trying URLSearchParams:', res.code, res.message)
+    } catch (e) {
+      logger.debug('FormData upload failed, trying URLSearchParams:', e)
+    }
+
+    // Fallback: URLSearchParams with data URI (original approach)
     const uploadResponse = await this.runtime.fetch(uploadUrl, {
       method: 'POST',
       credentials: 'include',
-      body: formData,
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ cover: dataUri }),
     })
 
     const res = await uploadResponse.json() as {
-      code: number
-      message?: string
-      msg?: string
-      data?: {
-        url: string
-        size?: number
-      }
+      code: number; message?: string; msg?: string
+      data?: { url: string; size?: number }
     }
 
-    logger.debug('Image upload response:', res)
+    logger.debug('Bilibili image upload response:', res)
 
     if (res.code !== 0 || !res.data?.url) {
       throw new Error(res.message || res.msg || '图片上传失败')
     }
 
-    const attrs = res.data.size ? { size: String(res.data.size) } : undefined
     return {
       url: this.normalizeBilibiliImageUrl(res.data.url),
-      attrs,
+      attrs: res.data.size ? { size: String(res.data.size) } : undefined,
     }
   }
 
-  private async srcToBlob(src: string): Promise<Blob> {
-    if (src.startsWith('data:')) {
-      // Decode data URI directly (avoids fetch overhead and potential issues)
-      const commaIdx = src.indexOf(',')
-      if (commaIdx < 0) throw new Error('Invalid data URI')
-      const base64 = src.slice(commaIdx + 1)
-      const mimeMatch = src.slice(0, commaIdx).match(/data:([^;]+)/)
-      const mimeType = mimeMatch?.[1] ?? 'image/png'
-      try {
-        const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0))
-        return new Blob([bytes], { type: mimeType })
-      } catch {
-        // Fallback: use fetch for data URI
-        const resp = await fetch(src)
-        return resp.blob()
-      }
+  private async dataUriToBlob(dataUri: string): Promise<Blob> {
+    const commaIdx = dataUri.indexOf(',')
+    if (commaIdx < 0) throw new Error('Invalid data URI')
+    const base64 = dataUri.slice(commaIdx + 1)
+    const mimeMatch = dataUri.slice(0, commaIdx).match(/data:([^;]+)/)
+    const mimeType = mimeMatch?.[1] ?? 'image/png'
+    try {
+      const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0))
+      return new Blob([bytes], { type: mimeType })
+    } catch {
+      const resp = await fetch(dataUri)
+      return resp.blob()
     }
-    // Remote URL
-    const resp = await this.runtime.fetch(src)
-    if (!resp.ok) throw new Error('图片下载失败: ' + src)
-    return resp.blob()
   }
 
   private guessImageExt(blob: Blob): string {
