@@ -42,7 +42,7 @@
 - Chrome 浏览器
 
 ### 一键初始化
-
+（以下命令请在git bash里执行）
 ```bash
 git clone git@github.com:QzlabQ/XEgineer-SyncAsist.git
 cd XEgineer-SyncAsist
