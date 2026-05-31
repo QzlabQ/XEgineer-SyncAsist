@@ -109,6 +109,7 @@ export class BilibiliAdapter extends CodeAdapter {
 
       // Use pre-processed HTML content directly
       let content = article.html || ''
+      let fallbackMessage = ''
 
       content = await this.processImages(
         content,
@@ -119,16 +120,28 @@ export class BilibiliAdapter extends CodeAdapter {
         }
       )
 
+      const sanitizedImages = this.sanitizeContentImages(content)
+      content = sanitizedImages.content
+      if (sanitizedImages.removed > 0) {
+        const removedSources = sanitizedImages.removedSources.join('；')
+        fallbackMessage = this.appendMessage(
+          fallbackMessage,
+          `B站不接受 ${sanitizedImages.removed} 张正文图片链接，已先移除以保存草稿；来源：${removedSources}。请在 B站编辑器中手动补图。`
+        )
+      }
+
       const coverUrl = await this.resolveCoverImage(article.cover)
       const tags = (article.tags ?? []).map(tag => tag.trim()).filter(Boolean).join(',')
       const category = article.category || '4'
 
-      let fallbackMessage = ''
       let res = await this.saveDraft(this.createDraftPayload(article, content, coverUrl, tags, category))
 
       if (this.isCoverAddressError(res) && coverUrl) {
         logger.warn('Bilibili rejected cover URL, retrying draft save without cover:', res)
-        fallbackMessage = 'B站未接收自动封面，已回退保存为无封面草稿；请在 B站编辑器中手动设置封面。'
+        fallbackMessage = this.appendMessage(
+          fallbackMessage,
+          'B站未接收自动封面，已回退保存为无封面草稿；请在 B站编辑器中手动设置封面。'
+        )
         res = await this.saveDraft(this.createDraftPayload(article, content, '', tags, category))
       }
 
@@ -193,6 +206,67 @@ export class BilibiliAdapter extends CodeAdapter {
     if (response.code === 0) return false
     const message = response.message ?? response.msg ?? ''
     return /封面|图片|图像|地址/.test(message)
+  }
+
+  private sanitizeContentImages(html: string): { content: string; removed: number; removedSources: string[] } {
+    let removed = 0
+    const removedSources: string[] = []
+    const content = html.replace(/<img\b[^>]*\bsrc=(["'])(.*?)\1[^>]*>/gi, (match, quote: string, src: string) => {
+      const normalizedSrc = this.normalizeContentImageSrc(src)
+      if (this.isAllowedContentImage(normalizedSrc)) {
+        return normalizedSrc === src ? match : match.replace(`${quote}${src}${quote}`, `${quote}${normalizedSrc}${quote}`)
+      }
+
+      removed++
+      removedSources.push(this.formatImageSourceForMessage(src))
+      logger.warn('Removing unsupported Bilibili content image:', src)
+      return ''
+    })
+
+    return { content, removed, removedSources: Array.from(new Set(removedSources)).slice(0, 3) }
+  }
+
+  private normalizeContentImageSrc(src: string): string {
+    const trimmed = src.trim()
+    if (trimmed.startsWith('//')) return `https:${trimmed}`
+    return trimmed
+  }
+
+  private isAllowedContentImage(src: string): boolean {
+    if (!/^https?:\/\//i.test(src)) return false
+
+    try {
+      const hostname = new URL(src).hostname.toLowerCase()
+      return (
+        hostname === 'hdslb.com' ||
+        hostname.endsWith('.hdslb.com') ||
+        hostname === 'bilibili.com' ||
+        hostname.endsWith('.bilibili.com') ||
+        hostname === 'biliimg.com' ||
+        hostname.endsWith('.biliimg.com')
+      )
+    } catch {
+      return false
+    }
+  }
+
+  private formatImageSourceForMessage(src: string): string {
+    const trimmed = src.trim()
+    if (!trimmed) return '空图片地址'
+    if (trimmed.startsWith('data:')) return '内联 base64 图片'
+    if (trimmed.startsWith('blob:')) return '浏览器临时 blob 图片'
+
+    try {
+      const url = trimmed.startsWith('//') ? new URL(`https:${trimmed}`) : new URL(trimmed)
+      const path = url.pathname.length > 36 ? `${url.pathname.slice(0, 36)}...` : url.pathname
+      return `${url.hostname}${path}`
+    } catch {
+      return trimmed.length > 48 ? `${trimmed.slice(0, 48)}...` : trimmed
+    }
+  }
+
+  private appendMessage(current: string, next: string): string {
+    return current ? `${current} ${next}` : next
   }
 
   private async resolveCoverImage(cover?: string): Promise<string> {

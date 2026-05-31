@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "XEgineer",
-  "version": "0.1.7",
+  "version": "0.1.9",
   "description": "多平台内容发布工具",
   "permissions": [
     "cookies",
