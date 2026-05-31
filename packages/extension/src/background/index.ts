@@ -1,11 +1,12 @@
 import { ExtensionRuntime } from '../runtime/extension'
 
-// Import Wechatsync adapters via alias (resolved in vite.config.ts)
-import { ZhihuAdapter } from '@wechatsync/core/adapters/platforms/zhihu'
-import { BilibiliAdapter } from '@wechatsync/core/adapters/platforms/bilibili'
-import { JuejinAdapter } from '@wechatsync/core/adapters/platforms/juejin'
-import type { BaseAdapter } from '@wechatsync/core/adapters/base'
-import type { Article } from '@wechatsync/core/types'
+// Platform adapters are vendored into the extension so the build does not
+// depend on an initialized Wechatsync submodule.
+import { ZhihuAdapter } from '../platform-adapters/adapters/platforms/zhihu'
+import { BilibiliAdapter } from '../platform-adapters/adapters/platforms/bilibili'
+import { JuejinAdapter } from '../platform-adapters/adapters/platforms/juejin'
+import type { BaseAdapter } from '../platform-adapters/adapters/base'
+import type { Article } from '../platform-adapters/types'
 
 type AdapterClass = new () => BaseAdapter
 
