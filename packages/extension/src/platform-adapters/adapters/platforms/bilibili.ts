@@ -363,21 +363,6 @@ export class BilibiliAdapter extends CodeAdapter {
     }
   }
 
-  private async dataUriToBlob(dataUri: string): Promise<Blob> {
-    const commaIdx = dataUri.indexOf(',')
-    if (commaIdx < 0) throw new Error('Invalid data URI')
-    const base64 = dataUri.slice(commaIdx + 1)
-    const mimeMatch = dataUri.slice(0, commaIdx).match(/data:([^;]+)/)
-    const mimeType = mimeMatch?.[1] ?? 'image/png'
-    try {
-      const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0))
-      return new Blob([bytes], { type: mimeType })
-    } catch {
-      const resp = await fetch(dataUri)
-      return resp.blob()
-    }
-  }
-
   private guessImageExt(blob: Blob): string {
     const mime = blob.type
     if (mime === 'image/png') return 'png'
