@@ -29,7 +29,8 @@ html, body {
 /* Tiptap editor styles */
 .tiptap-editor {
   outline: none;
-  min-height: 400px;
+  min-height: max(400px, calc(100vh - 220px));
+  padding-bottom: 40vh;
 }
 
 .tiptap-editor p.is-editor-empty:first-child::before {

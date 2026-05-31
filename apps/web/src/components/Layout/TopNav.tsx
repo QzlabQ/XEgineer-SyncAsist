@@ -13,7 +13,7 @@ export function TopNav() {
   const selectedCount = platforms.filter(p => p.selected).length
 
   return (
-    <header className="h-12 flex items-center justify-between px-4 border-b border-gray-200 bg-white flex-shrink-0">
+    <header className="relative z-30 h-12 flex items-center justify-between px-4 border-b border-gray-200 bg-white flex-shrink-0">
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-1.5 font-semibold text-gray-900">
           <PenLine size={18} className="text-blue-600" />

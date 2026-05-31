@@ -53,7 +53,7 @@ export function EditorToolbar({ editor, onImageUpload }: EditorToolbarProps) {
   const sz = 15
 
   return (
-    <div className="flex flex-wrap items-center gap-1 px-4 py-2 border-b border-gray-200 bg-white sticky top-0 z-10">
+    <div className="flex flex-wrap items-center gap-1 px-4 py-2 border-b border-gray-200 bg-white sticky top-0 z-20">
       {/* History */}
       {btn(false, () => editor.chain().focus().undo().run(), <Undo size={sz} />, '撤销', !editor.can().undo())}
       {btn(false, () => editor.chain().focus().redo().run(), <Redo size={sz} />, '重做', !editor.can().redo())}

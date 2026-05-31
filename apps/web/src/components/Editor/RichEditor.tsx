@@ -1,6 +1,6 @@
 'use client'
 
-import { useEditor, EditorContent, BubbleMenu } from '@tiptap/react'
+import { useEditor, EditorContent } from '@tiptap/react'
 import { useEffect, useCallback, useRef, useState } from 'react'
 import type { Editor } from '@tiptap/core'
 import StarterKit from '@tiptap/starter-kit'
@@ -24,6 +24,11 @@ interface SlashState {
   query: string
   from: number
   to: number
+  top: number
+  left: number
+}
+
+interface FloatingToolbarState {
   top: number
   left: number
 }
@@ -100,12 +105,21 @@ interface RichEditorProps {
 export function RichEditor({ content, onChange }: RichEditorProps) {
   const [slashState, setSlashState] = useState<SlashState | null>(null)
   const [slashIndex, setSlashIndex] = useState(0)
+  const [selectionToolbar, setSelectionToolbar] = useState<FloatingToolbarState | null>(null)
   const slashStateRef = useRef<SlashState | null>(null)
+  const overlayFrameRef = useRef<number | null>(null)
 
   const setSlashMenu = useCallback((state: SlashState | null) => {
+    const previous = slashStateRef.current
+    const shouldResetIndex = !previous ||
+      !state ||
+      previous.from !== state.from ||
+      previous.to !== state.to ||
+      previous.query !== state.query
+
     slashStateRef.current = state
     setSlashState(state)
-    setSlashIndex(0)
+    if (shouldResetIndex) setSlashIndex(0)
   }, [])
 
   const editor = useEditor({
@@ -145,16 +159,48 @@ export function RichEditor({ content, onChange }: RichEditorProps) {
         files.forEach(file => insertImageFile(view, file, pos))
         return true
       },
+      handleDOMEvents: {
+        blur: () => {
+          setSlashMenu(null)
+          setSelectionToolbar(null)
+          return false
+        },
+      },
     },
     onUpdate({ editor }) {
       onChange(JSON.stringify(editor.getJSON()))
       updateSlashMenu(editor, setSlashMenu)
+      updateSelectionToolbar(editor, setSelectionToolbar)
     },
     onSelectionUpdate({ editor }) {
       updateSlashMenu(editor, setSlashMenu)
+      updateSelectionToolbar(editor, setSelectionToolbar)
     },
     immediatelyRender: false,
   })
+
+  const refreshOverlays = useCallback(() => {
+    if (!editor || overlayFrameRef.current !== null) return
+
+    overlayFrameRef.current = window.requestAnimationFrame(() => {
+      overlayFrameRef.current = null
+      updateSlashMenu(editor, setSlashMenu)
+      updateSelectionToolbar(editor, setSelectionToolbar)
+    })
+  }, [editor, setSlashMenu])
+
+  useEffect(() => {
+    if (!editor) return
+
+    window.addEventListener('resize', refreshOverlays)
+    return () => {
+      window.removeEventListener('resize', refreshOverlays)
+      if (overlayFrameRef.current !== null) {
+        window.cancelAnimationFrame(overlayFrameRef.current)
+        overlayFrameRef.current = null
+      }
+    }
+  }, [editor, refreshOverlays])
 
   // Sync external content changes (e.g. switching articles)
   useEffect(() => {
@@ -235,16 +281,12 @@ export function RichEditor({ content, onChange }: RichEditorProps) {
     <div className="flex flex-col h-full" onKeyDownCapture={handleEditorKeyDown}>
       <EditorToolbar editor={editor} onImageUpload={handleImageUpload} />
 
-      {/* Bubble menu — appears when text is selected */}
-      <BubbleMenu
-        editor={editor}
-        tippyOptions={{ duration: 100, placement: 'top' }}
-        shouldShow={({ editor: e, state }) => {
-          const { selection } = state
-          return !selection.empty && !e.isActive('image') && !e.isActive('codeBlock')
-        }}
-      >
-        <div className="flex items-center gap-0.5 bg-gray-900 rounded-lg px-1.5 py-1 shadow-xl">
+      {selectionToolbar && (
+        <div
+          className="fixed z-50 flex items-center gap-0.5 rounded-lg bg-gray-900 px-1.5 py-1 shadow-xl"
+          style={{ top: selectionToolbar.top, left: selectionToolbar.left }}
+          onMouseDown={event => event.preventDefault()}
+        >
           {bubbleBtn(editor.isActive('bold'), () => editor.chain().focus().toggleBold().run(), <Bold size={13} />, '加粗')}
           {bubbleBtn(editor.isActive('italic'), () => editor.chain().focus().toggleItalic().run(), <Italic size={13} />, '斜体')}
           {bubbleBtn(editor.isActive('underline'), () => editor.chain().focus().toggleUnderline().run(), <UnderlineIcon size={13} />, '下划线')}
@@ -260,14 +302,14 @@ export function RichEditor({ content, onChange }: RichEditorProps) {
             editor.chain().focus().setLink({ href: url }).run()
           }, <Link2 size={13} />, '链接')}
         </div>
-      </BubbleMenu>
+      )}
 
-      <div className="flex-1 overflow-y-auto px-8 py-6">
-        <EditorContent editor={editor} />
+      <div className="flex-1 overflow-y-auto px-8 py-6" onScroll={refreshOverlays}>
+        <EditorContent editor={editor} className="min-h-full" />
       </div>
       {slashState && filteredSlashCommands.length > 0 && (
         <div
-          className="fixed z-50 w-56 rounded-lg border border-gray-200 bg-white shadow-lg py-1"
+          className="fixed z-[5] w-56 rounded-lg border border-gray-200 bg-white shadow-lg py-1"
           style={{ top: slashState.top, left: slashState.left }}
         >
           {filteredSlashCommands.map((command, index) => (
@@ -307,13 +349,58 @@ function updateSlashMenu(editor: Editor, setSlashMenu: (state: SlashState | null
   }
 
   const from = $from.pos - match[0].length
-  const coords = editor.view.coordsAtPos(from)
+  let coords: { bottom: number; left: number }
+  try {
+    coords = editor.view.coordsAtPos(from)
+  } catch {
+    setSlashMenu(null)
+    return
+  }
+
   setSlashMenu({
     query: match[1],
     from,
     to: $from.pos,
     top: coords.bottom + 8,
-    left: Math.min(coords.left, window.innerWidth - 240),
+    left: Math.max(12, Math.min(coords.left, window.innerWidth - 240)),
+  })
+}
+
+function updateSelectionToolbar(
+  editor: Editor,
+  setSelectionToolbar: (state: FloatingToolbarState | null) => void
+) {
+  const { selection } = editor.state
+  if (selection.empty || editor.isActive('image') || editor.isActive('codeBlock')) {
+    setSelectionToolbar(null)
+    return
+  }
+
+  const domSelection = window.getSelection()
+  if (
+    !domSelection ||
+    domSelection.rangeCount === 0 ||
+    !domSelection.anchorNode ||
+    !editor.view.dom.contains(domSelection.anchorNode)
+  ) {
+    setSelectionToolbar(null)
+    return
+  }
+
+  const rect = domSelection.getRangeAt(0).getBoundingClientRect()
+  if (!rect.width && !rect.height) {
+    setSelectionToolbar(null)
+    return
+  }
+
+  const menuWidth = 228
+  const preferredTop = rect.top - 42
+  const top = preferredTop > 8 ? preferredTop : rect.bottom + 8
+  const centeredLeft = rect.left + rect.width / 2 - menuWidth / 2
+
+  setSelectionToolbar({
+    top,
+    left: Math.max(12, Math.min(centeredLeft, window.innerWidth - menuWidth - 12)),
   })
 }
 

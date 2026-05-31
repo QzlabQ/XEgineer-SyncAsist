@@ -76,7 +76,7 @@ export default function EditorPage() {
         {/* Editor area */}
         <div className="flex-1 flex flex-col overflow-hidden bg-white">
           {/* Title */}
-          <div className="px-8 pt-8 pb-2 flex-shrink-0">
+          <div className="relative z-20 bg-white px-8 pt-8 pb-2 flex-shrink-0">
             <input
               type="text"
               value={current.title}
