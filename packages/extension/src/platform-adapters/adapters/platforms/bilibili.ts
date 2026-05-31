@@ -233,6 +233,9 @@ export class BilibiliAdapter extends CodeAdapter {
   }
 
   private isAllowedContentImage(src: string): boolean {
+    // Keep data URIs as fallback — better than empty images
+    if (src.startsWith('data:')) return true
+
     if (!/^https?:\/\//i.test(src)) return false
 
     try {
@@ -298,26 +301,19 @@ export class BilibiliAdapter extends CodeAdapter {
       throw new Error('CSRF token 未获取')
     }
 
-    let cover = src
-    if (!cover.startsWith('data:')) {
-      const imageResponse = await this.runtime.fetch(src)
-      if (!imageResponse.ok) {
-        throw new Error('图片下载失败: ' + src)
-      }
-      const imageBlob = await imageResponse.blob()
-      cover = await this.blobToDataUri(imageBlob)
-    }
+    // Convert to Blob (handles both data URIs and remote URLs)
+    const blob = await this.srcToBlob(src)
+
+    // Use multipart form data for reliable large image upload
+    const formData = new FormData()
+    formData.append('file', blob, `image.${this.guessImageExt(blob)}`)
+    formData.append('csrf', this.csrf)
 
     const uploadUrl = 'https://api.bilibili.com/x/article/creative/article/upcover'
     const uploadResponse = await this.runtime.fetch(uploadUrl, {
       method: 'POST',
       credentials: 'include',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Origin': 'https://member.bilibili.com',
-        'Referer': 'https://member.bilibili.com/',
-      },
-      body: new URLSearchParams({ cover }),
+      body: formData,
     })
 
     const res = await uploadResponse.json() as {
@@ -341,5 +337,36 @@ export class BilibiliAdapter extends CodeAdapter {
       url: this.normalizeBilibiliImageUrl(res.data.url),
       attrs,
     }
+  }
+
+  private async srcToBlob(src: string): Promise<Blob> {
+    if (src.startsWith('data:')) {
+      // Decode data URI directly (avoids fetch overhead and potential issues)
+      const commaIdx = src.indexOf(',')
+      if (commaIdx < 0) throw new Error('Invalid data URI')
+      const base64 = src.slice(commaIdx + 1)
+      const mimeMatch = src.slice(0, commaIdx).match(/data:([^;]+)/)
+      const mimeType = mimeMatch?.[1] ?? 'image/png'
+      try {
+        const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0))
+        return new Blob([bytes], { type: mimeType })
+      } catch {
+        // Fallback: use fetch for data URI
+        const resp = await fetch(src)
+        return resp.blob()
+      }
+    }
+    // Remote URL
+    const resp = await this.runtime.fetch(src)
+    if (!resp.ok) throw new Error('图片下载失败: ' + src)
+    return resp.blob()
+  }
+
+  private guessImageExt(blob: Blob): string {
+    const mime = blob.type
+    if (mime === 'image/png') return 'png'
+    if (mime === 'image/gif') return 'gif'
+    if (mime === 'image/webp') return 'webp'
+    return 'jpg'
   }
 }

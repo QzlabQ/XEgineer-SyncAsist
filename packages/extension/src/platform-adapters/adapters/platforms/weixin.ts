@@ -721,11 +721,29 @@ export class WeixinAdapter extends CodeAdapter {
       throw new Error('未登录')
     }
 
-    const imageResponse = await fetch(src)
-    if (!imageResponse.ok) {
-      throw new Error('图片下载失败: ' + src)
+    let imageBlob: Blob
+    if (src.startsWith('data:')) {
+      // Decode data URI directly (avoids fetch for large base64 strings)
+      const commaIdx = src.indexOf(',')
+      if (commaIdx < 0) throw new Error('Invalid data URI')
+      const base64 = src.slice(commaIdx + 1)
+      const mimeMatch = src.slice(0, commaIdx).match(/data:([^;]+)/)
+      const mimeType = mimeMatch?.[1] ?? 'image/png'
+      try {
+        const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0))
+        imageBlob = new Blob([bytes], { type: mimeType })
+      } catch {
+        const resp = await fetch(src)
+        if (!resp.ok) throw new Error('图片下载失败: ' + src)
+        imageBlob = await resp.blob()
+      }
+    } else {
+      const imageResponse = await fetch(src)
+      if (!imageResponse.ok) {
+        throw new Error('图片下载失败: ' + src)
+      }
+      imageBlob = await imageResponse.blob()
     }
-    const imageBlob = await imageResponse.blob()
 
     const formData = new FormData()
     const timestamp = Date.now()
