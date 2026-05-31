@@ -8,16 +8,18 @@ export class ZhihuRenderer extends BaseRenderer {
   metaSchema: MetaField[] = [
     { key: 'cover', label: '封面图', type: 'image' },
     { key: 'summary', label: '摘要', type: 'textarea', placeholder: '不填则自动截取正文前120字' },
-    { key: 'tags', label: '话题', type: 'tags', placeholder: '输入话题后按回车' },
   ]
 
   render(doc: ContentDocument, config: PlatformConfig): PlatformPayload {
+    const summary = config.summary ?? this.autoSummary(doc)
+    const cover = config.cover ?? doc.meta.cover
+
     return {
       title: doc.meta.title,
       content: this.nodesToHTML(doc.body),
-      topics: config.tags ?? doc.meta.tags,
-      cover: config.cover ?? doc.meta.cover,
-      excerpt: config.summary ?? this.autoSummary(doc),
+      cover,
+      summary,
+      excerpt: summary,
       isDraft: config.isDraft ?? true,
     }
   }

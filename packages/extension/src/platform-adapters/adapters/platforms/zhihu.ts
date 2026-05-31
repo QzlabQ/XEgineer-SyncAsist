@@ -18,7 +18,7 @@ export class ZhihuAdapter extends CodeAdapter {
     name: '知乎',
     icon: 'https://static.zhihu.com/static/favicon.ico',
     homepage: 'https://www.zhihu.com',
-    capabilities: ['article', 'draft', 'image_upload', 'tags', 'cover'],
+    capabilities: ['article', 'draft', 'image_upload', 'cover'],
   }
 
   /** 预处理配置: 知乎使用 HTML，需要特殊处理 */
@@ -154,12 +154,43 @@ export class ZhihuAdapter extends CodeAdapter {
       content = this.transformContent(content)
 
       // 5. 更新草稿内容
-      let updateResponse = await this.updateDraft(draftId, article.title, content, coverResult.url)
+      const hasSummary = Boolean(article.summary?.trim())
+      let updateResponse = await this.updateDraft(draftId, article.title, content, {
+        coverUrl: coverResult.url,
+        summary: article.summary,
+      })
+
+      if (!updateResponse.ok && coverResult.url && hasSummary) {
+        const updateText = await updateResponse.text()
+        logger.warn('Update draft with cover and summary metadata failed, retrying with cover metadata only:', updateResponse.status, updateText)
+        updateResponse = await this.updateDraft(draftId, article.title, content, { coverUrl: coverResult.url })
+        if (updateResponse.ok) {
+          fallbackMessage = this.appendMessage(
+            fallbackMessage,
+            'Zhihu did not accept summary metadata; saved draft content and cover.'
+          )
+        }
+      }
 
       if (!updateResponse.ok && coverResult.url) {
         const updateText = await updateResponse.text()
         logger.warn('Update draft with cover metadata failed, retrying without cover metadata:', updateResponse.status, updateText)
-        fallbackMessage = '知乎未接受封面字段，已回退为无封面草稿；正文内容已保存，请在知乎编辑器中手动设置封面。'
+        fallbackMessage = this.appendMessage(
+          fallbackMessage,
+          'Zhihu did not accept cover metadata; saved draft without cover.'
+        )
+        updateResponse = await this.updateDraft(draftId, article.title, content, {
+          summary: article.summary,
+        })
+      }
+
+      if (!updateResponse.ok && hasSummary) {
+        const updateText = await updateResponse.text()
+        logger.warn('Update draft with summary metadata failed, retrying without summary metadata:', updateResponse.status, updateText)
+        fallbackMessage = this.appendMessage(
+          fallbackMessage,
+          'Zhihu did not accept summary metadata; saved draft without it.'
+        )
         updateResponse = await this.updateDraft(draftId, article.title, content)
       }
 
@@ -509,21 +540,35 @@ export class ZhihuAdapter extends CodeAdapter {
     }
   }
 
+  private appendMessage(current: string | undefined, next: string): string {
+    return current ? `${current} ${next}` : next
+  }
+
   private async updateDraft(
     draftId: string,
     title: string,
     content: string,
-    coverUrl?: string
+    metadata: {
+      coverUrl?: string
+      summary?: string
+    } = {}
   ): Promise<Response> {
     const payload: Record<string, unknown> = {
       title,
       content,
     }
 
+    const coverUrl = metadata.coverUrl
     if (coverUrl) {
       payload.titleImage = coverUrl
       payload.title_image = coverUrl
       payload.image_url = coverUrl
+    }
+
+    const summary = metadata.summary?.trim()
+    if (summary) {
+      payload.summary = summary
+      payload.excerpt = summary
     }
 
     return this.runtime.fetch(

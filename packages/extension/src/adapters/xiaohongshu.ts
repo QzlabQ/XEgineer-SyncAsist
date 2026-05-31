@@ -19,14 +19,10 @@ interface XiaohongshuPublishDraftRef {
 interface XiaohongshuAutomationPayload {
   title: string
   body: string
-  draftOnly: boolean
 }
 
 interface XiaohongshuAutomationResult {
   staged: boolean
-  published: boolean
-  clickedPublish: boolean
-  postId?: string
   postUrl?: string
   message?: string
 }
@@ -51,7 +47,8 @@ export class XiaohongshuAdapter extends BaseAdapter {
 
   async publish(article: Article, options?: PublishOptions): Promise<SyncResult> {
     return this.publishThroughCreator(article, {
-      draftOnly: options?.draftOnly === true,
+      active: options?.draftOnly !== true,
+      draftOnly: true,
     })
   }
 
@@ -66,7 +63,8 @@ export class XiaohongshuAdapter extends BaseAdapter {
     }
 
     return this.publishThroughCreator(draftRef.article, {
-      draftOnly: false,
+      active: true,
+      draftOnly: true,
       draftId: draftRef.postId,
       postUrl: draftRef.postUrl,
     })
@@ -74,7 +72,7 @@ export class XiaohongshuAdapter extends BaseAdapter {
 
   private async publishThroughCreator(
     article: Article,
-    options: { draftOnly: boolean; draftId?: string; postUrl?: string }
+    options: { draftOnly: boolean; active?: boolean; draftId?: string; postUrl?: string }
   ): Promise<SyncResult> {
     const draftId = options.draftId ?? this.createLocalDraftId()
     const publishUrl = options.postUrl && options.postUrl.startsWith('https://creator.xiaohongshu.com/')
@@ -86,7 +84,7 @@ export class XiaohongshuAdapter extends BaseAdapter {
       if (!auth.isAuthenticated) throw new Error('请先登录小红书（www.xiaohongshu.com 或 creator.xiaohongshu.com）')
       if (!this.runtime.tabs) throw new Error('当前运行时不支持页面自动化，无法自动发布小红书')
 
-      const tab = await this.runtime.tabs.create(publishUrl, !options.draftOnly)
+      const tab = await this.runtime.tabs.create(publishUrl, options.active ?? !options.draftOnly)
       if (!tab?.id) throw new Error('无法打开小红书创作者发布页')
 
       try {
@@ -95,7 +93,7 @@ export class XiaohongshuAdapter extends BaseAdapter {
         // 小红书是 SPA，load 事件不总是可靠，超时后继续尝试注入。
       }
 
-      const payload = this.toAutomationPayload(article, options.draftOnly)
+      const payload = this.toAutomationPayload(article)
       const executeScript = this.runtime.tabs.executeScript as <T, A extends unknown[]>(
         tabId: number,
         func: (...args: A) => T | Promise<T>,
@@ -148,10 +146,6 @@ export class XiaohongshuAdapter extends BaseAdapter {
               .filter(text => text && text.length <= 220)
             return Array.from(new Set(texts)).slice(0, 8).join('；')
           }
-          const pageText = () => normalize(document.body?.innerText || '')
-          const hasAny = (text: string, labels: string[]) => labels.some(label => text.includes(normalize(label)))
-          const successLabels = ['发布成功', '发表成功', '发布完成', '笔记发布成功', '审核中', '已提交审核']
-          const blockedLabels = ['请登录', '登录', '验证码', '安全验证', '实名认证', '风险', '风控', '频繁', '内容不能为空', '标题不能为空']
           const click = (element: HTMLElement) => {
             element.scrollIntoView({ block: 'center', inline: 'center' })
             element.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType: 'mouse' }))
@@ -265,22 +259,6 @@ export class XiaohongshuAdapter extends BaseAdapter {
               setEditableValue(element, value)
             }
           }
-          const findUncheckedConsent = () => {
-            const inputs = Array.from(document.querySelectorAll('input[type="checkbox"]')) as HTMLInputElement[]
-            return inputs.find(input => isVisible(input) && !input.checked)
-          }
-          const extractPostId = () => {
-            const match = location.href.match(/(?:explore|discovery\/item|note|notes)\/([A-Za-z0-9_-]+)/i)
-            return match?.[1]
-          }
-          const isPublished = () => {
-            return hasAny(collectMessages(), successLabels) || Boolean(extractPostId())
-          }
-          const isBlocked = () => {
-            const statusText = `${collectMessages()}；${pageText()}`
-            return hasAny(statusText, blockedLabels)
-          }
-
           for (let i = 0; i < 10; i++) {
             const titleField = findTitleField()
             const bodyField = findBodyField()
@@ -295,8 +273,6 @@ export class XiaohongshuAdapter extends BaseAdapter {
           if (!titleField || !bodyField) {
             return {
               staged: false,
-              published: false,
-              clickedPublish: false,
               postUrl: location.href,
               message: collectMessages() || '未找到小红书标题或正文编辑区域',
             }
@@ -307,76 +283,10 @@ export class XiaohongshuAdapter extends BaseAdapter {
           setFieldValue(bodyField, payload.body)
           await sleep(1200)
 
-          clickButton(['一键排版', '智能排版', '生成排版'], ['教程', '帮助'])
-          await sleep(2500)
-
-          for (let i = 0; i < 8; i++) {
-            const clickedNext = clickButton(['下一步', '继续', '去发布', '发布设置'], ['上一步', '教程', '帮助'])
-            if (clickedNext) await sleep(1800)
-
-            const publishButton = findButton(['发布图文', '发布笔记', '发布', '发表', '确认发布'], ['草稿', '预览', '管理', '记录'])
-            if (publishButton || payload.draftOnly) break
-            await sleep(1000)
-          }
-
-          const finalTitle = findTitleField()
-          if (finalTitle) setFieldValue(finalTitle, payload.title)
-
-          const finalBody = findBodyField()
-          if (finalBody) setFieldValue(finalBody, payload.body)
-
-          if (payload.draftOnly) {
-            clickButton(['保存草稿', '暂存草稿', '存为草稿', '保存'], ['发布', '删除'])
-            await sleep(1200)
-            return {
-              staged: true,
-              published: false,
-              clickedPublish: false,
-              postUrl: location.href,
-              message: collectMessages() || '已完成小红书页面填写，等待定时发布',
-            }
-          }
-
-          let clickedPublish = false
-          for (let i = 0; i < 18; i++) {
-            if (isPublished()) {
-              return {
-                staged: true,
-                published: true,
-                clickedPublish,
-                postId: extractPostId(),
-                postUrl: location.href,
-                message: collectMessages() || '小红书页面提示发布成功',
-              }
-            }
-
-            if (isBlocked()) {
-              return {
-                staged: true,
-                published: false,
-                clickedPublish,
-                postUrl: location.href,
-                message: collectMessages() || '小红书页面出现登录/验证/风控提示',
-              }
-            }
-
-            const checkbox = findUncheckedConsent()
-            if (checkbox) checkbox.click()
-
-            if (clickButton(['发布图文', '发布笔记', '发布', '发表', '确认发布', '确定发布'], ['草稿', '预览', '管理', '记录'])) {
-              clickedPublish = true
-            }
-
-            await sleep(1500)
-          }
-
           return {
             staged: true,
-            published: isPublished(),
-            clickedPublish,
-            postId: extractPostId(),
             postUrl: location.href,
-            message: collectMessages() || (clickedPublish ? '已点击小红书发布按钮，但未检测到成功提示' : '未找到小红书最终发布按钮'),
+            message: collectMessages() || '已导入小红书文章，停在一键排版前，请在页面手动继续排版和发布',
           }
         },
         [payload],
@@ -392,29 +302,11 @@ export class XiaohongshuAdapter extends BaseAdapter {
         })
       }
 
-      if (options.draftOnly) {
-        return this.createResult(true, {
-          postId: draftId,
-          postUrl: result.postUrl ?? publishUrl,
-          draftOnly: true,
-          message: result.message ?? '已完成小红书草稿准备，等待定时发布',
-        })
-      }
-
-      if (result.published) {
-        return this.createResult(true, {
-          postId: result.postId ?? draftId,
-          postUrl: result.postUrl ?? publishUrl,
-          draftOnly: false,
-          message: result.message ?? '已通过小红书创作者页面自动发布',
-        })
-      }
-
-      return this.createResult(false, {
+      return this.createResult(true, {
         postId: draftId,
         postUrl: result.postUrl ?? publishUrl,
         draftOnly: true,
-        error: result.message ?? '小红书自动发布未确认成功',
+        message: result.message ?? '已导入小红书文章，停在一键排版前，请在页面手动继续排版和发布',
       })
     } catch (error) {
       return this.createResult(false, {
@@ -426,12 +318,11 @@ export class XiaohongshuAdapter extends BaseAdapter {
     }
   }
 
-  private toAutomationPayload(article: Article, draftOnly: boolean): XiaohongshuAutomationPayload {
+  private toAutomationPayload(article: Article): XiaohongshuAutomationPayload {
     const body = this.buildBodyText(article)
     return {
       title: article.title || '无标题',
       body,
-      draftOnly,
     }
   }
 

@@ -215,15 +215,38 @@ async function publishToPlatform(
 }
 
 function toPlatformArticle(article: Record<string, unknown>): Article {
+  const summary = firstString(article.summary, article.brief, article.excerpt)
+  const tags = stringArray(article.tags) ?? stringArray(article.topics)
   return {
-    title: article.title as string,
-    markdown: (article.markdownContent as string | undefined) ?? '',
-    html: article.content as string | undefined,
-    summary: article.summary as string | undefined ?? article.brief as string | undefined,
-    cover: article.cover as string | undefined ?? article.coverImage as string | undefined,
-    tags: article.tags as string[] | undefined,
-    category: article.categoryId as string | undefined ?? article.category as string | undefined,
+    title: firstString(article.title) ?? '',
+    markdown: firstString(article.markdownContent, article.markdown) ?? '',
+    html: firstString(article.content, article.html),
+    summary,
+    cover: firstString(article.cover, article.coverImage),
+    tags,
+    category: firstString(article.categoryId, article.category),
   }
+}
+
+function firstString(...values: unknown[]): string | undefined {
+  return values.find((value): value is string => typeof value === 'string')
+}
+
+function stringArray(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined
+
+  const tags = value
+    .map(item => {
+      if (typeof item === 'string') return item
+      if (item && typeof item === 'object' && 'name' in item && typeof item.name === 'string') {
+        return item.name
+      }
+      return ''
+    })
+    .map(tag => tag.trim())
+    .filter(Boolean)
+
+  return tags.length ? tags : undefined
 }
 
 async function schedulePublish(input: {
