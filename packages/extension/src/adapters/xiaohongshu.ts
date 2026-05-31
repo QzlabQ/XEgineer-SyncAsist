@@ -46,7 +46,14 @@ export class XiaohongshuAdapter extends BaseAdapter {
 
       // Inject form-filling script in MAIN world
       try {
-        await this.runtime.tabs.executeScript(
+        const executeScript = this.runtime.tabs.executeScript as <T, A extends unknown[]>(
+          tabId: number,
+          func: (...args: A) => T | Promise<T>,
+          args: A,
+          world?: 'ISOLATED' | 'MAIN'
+        ) => Promise<T>
+
+        await executeScript(
           tab.id,
           (title: string, content: string) => {
             // Try to fill the title and content fields on the publish page

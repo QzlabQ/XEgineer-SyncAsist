@@ -76,7 +76,7 @@ async function handleMessage(msg: XEgineerMessage): Promise<XEgineerResponse> {
     case 'CHECK_AUTH': {
       const { platformId } = payload as { platformId: string }
       const adapter = await getAdapter(platformId)
-      const result = await adapter.checkAuth()
+      const result = await checkAuthWithFallback(platformId, adapter)
       return {
         requestId,
         success: true,
@@ -123,5 +123,196 @@ async function handleMessage(msg: XEgineerMessage): Promise<XEgineerResponse> {
 
     default:
       return { requestId, success: false, error: `Unknown message type: ${type}` }
+  }
+}
+
+type AuthData = {
+  isAuthenticated: boolean
+  username?: string
+  userId?: string
+  avatar?: string
+  error?: string
+}
+
+async function checkAuthWithFallback(platformId: string, adapter: BaseAdapter): Promise<AuthData> {
+  let adapterResult: AuthData | null = null
+
+  try {
+    adapterResult = await adapter.checkAuth()
+    if (adapterResult.isAuthenticated) return adapterResult
+  } catch (error) {
+    adapterResult = {
+      isAuthenticated: false,
+      error: error instanceof Error ? error.message : String(error),
+    }
+  }
+
+  const fallback = await checkCookieAuth(platformId)
+  if (fallback?.isAuthenticated) return fallback
+
+  return adapterResult ?? { isAuthenticated: false }
+}
+
+async function checkCookieAuth(platformId: string): Promise<AuthData | null> {
+  switch (platformId) {
+    case 'weixin':
+      return checkWeixinCookieAuth()
+    case 'csdn':
+      return checkCsdnCookieAuth()
+    case 'xiaohongshu':
+      return checkXiaohongshuCookieAuth()
+    default:
+      return null
+  }
+}
+
+async function checkWeixinCookieAuth(): Promise<AuthData> {
+  const cookies = await getCookiesForDomains([
+    'mp.weixin.qq.com',
+    '.mp.weixin.qq.com',
+    'weixin.qq.com',
+    '.weixin.qq.com',
+  ])
+
+  const userName = getCookieValue(cookies, ['slave_user'])
+  const userId = getCookieValue(cookies, ['data_bizuin', 'slave_bizuin', 'bizuin'])
+  const hasSession = Boolean(
+    getCookieValue(cookies, ['slave_sid']) ||
+    getCookieValue(cookies, ['ticket']) ||
+    getCookieValue(cookies, ['ticket_id']) ||
+    userName ||
+    userId
+  )
+
+  if (hasSession) {
+    return {
+      isAuthenticated: true,
+      userId: userId ? decodeCookieText(userId) : undefined,
+      username: userName ? decodeCookieText(userName) : undefined,
+    }
+  }
+
+  const openTab = await findOpenTab(['https://mp.weixin.qq.com/*'])
+  const hasTokenInUrl = openTab?.url ? /[?&]token=\d+/.test(openTab.url) : false
+  return { isAuthenticated: hasTokenInUrl }
+}
+
+async function checkCsdnCookieAuth(): Promise<AuthData> {
+  const cookies = await getCookiesForDomains([
+    'csdn.net',
+    '.csdn.net',
+    'blog.csdn.net',
+    'editor.csdn.net',
+    'passport.csdn.net',
+  ])
+
+  const userToken = getCookieValue(cookies, ['UserToken'])
+  const userName = getCookieValue(cookies, ['UserName'])
+  const userNick = getCookieValue(cookies, ['UserNick'])
+  const userInfo = getCookieValue(cookies, ['UserInfo'])
+  const hasSession = Boolean(userToken || userName || userNick || userInfo || getCookieValue(cookies, ['AU', 'BT']))
+
+  return {
+    isAuthenticated: hasSession,
+    username: decodeCookieText(userNick || userName || ''),
+  }
+}
+
+async function checkXiaohongshuCookieAuth(): Promise<AuthData> {
+  const cookies = await getCookiesForDomains([
+    'xiaohongshu.com',
+    '.xiaohongshu.com',
+    'www.xiaohongshu.com',
+    'creator.xiaohongshu.com',
+  ])
+
+  const session = getCookieValue(cookies, [
+    'web_session',
+    'web_session_v2',
+    'access-token-shopping',
+    'customer-sso-sid',
+  ])
+
+  if (session) return { isAuthenticated: true }
+
+  return probeXiaohongshuOpenTab()
+}
+
+async function probeXiaohongshuOpenTab(): Promise<AuthData> {
+  const tab = await findOpenTab([
+    'https://www.xiaohongshu.com/*',
+    'https://creator.xiaohongshu.com/*',
+    'https://*.xiaohongshu.com/*',
+  ])
+  if (!tab?.id) return { isAuthenticated: false }
+
+  try {
+    const result = await runtime.tabs.executeScript(
+      tab.id,
+      () => {
+        const keys = Object.keys(localStorage)
+        const values = keys
+          .filter(key => /user|account|login|session|profile|creator/i.test(key))
+          .map(key => localStorage.getItem(key) ?? '')
+          .join('\n')
+
+        const match = values.match(/"nickname"\s*:\s*"([^"]+)"/) ||
+          values.match(/"nickName"\s*:\s*"([^"]+)"/) ||
+          values.match(/"name"\s*:\s*"([^"]+)"/)
+
+        return {
+          hasUserState: /userId|user_id|nickname|nickName|red_id|logged/i.test(values),
+          username: match?.[1],
+        }
+      },
+      []
+    )
+
+    return {
+      isAuthenticated: Boolean(result?.hasUserState),
+      username: result?.username,
+    }
+  } catch {
+    return { isAuthenticated: false }
+  }
+}
+
+async function getCookiesForDomains(domains: string[]): Promise<chrome.cookies.Cookie[]> {
+  const results = await Promise.all(domains.map(async domain => {
+    try {
+      return await chrome.cookies.getAll({ domain })
+    } catch {
+      return []
+    }
+  }))
+
+  const seen = new Set<string>()
+  return results.flat().filter(cookie => {
+    const key = `${cookie.domain}|${cookie.path}|${cookie.name}`
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+}
+
+function getCookieValue(cookies: chrome.cookies.Cookie[], names: string[]): string {
+  const normalizedNames = names.map(name => name.toLowerCase())
+  return cookies.find(cookie => normalizedNames.includes(cookie.name.toLowerCase()))?.value ?? ''
+}
+
+async function findOpenTab(urls: string[]): Promise<chrome.tabs.Tab | undefined> {
+  for (const url of urls) {
+    const tabs = await chrome.tabs.query({ url })
+    if (tabs[0]) return tabs[0]
+  }
+  return undefined
+}
+
+function decodeCookieText(value: string): string | undefined {
+  if (!value) return undefined
+  try {
+    return decodeURIComponent(value)
+  } catch {
+    return value
   }
 }
