@@ -4,6 +4,7 @@
 
 内容创作者的一站式发布工具：在所见即所得编辑器中写好文章，自动适配各平台格式，通过浏览器扩展一键同步发布到知乎、B站、掘金、微信公众号等平台。
 展示链接：
+github issue: https://github.com/QzlabQ/XEgineer-SyncAsist/issues/1
 
 ---
 
