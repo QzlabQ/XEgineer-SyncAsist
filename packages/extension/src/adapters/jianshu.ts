@@ -2,8 +2,8 @@
  * 简书适配器
  * 通过 www.jianshu.com API 发布文章草稿
  */
-import { CodeAdapter } from '@wechatsync/core/adapters/code-adapter'
-import type { Article, AuthResult, SyncResult, PlatformMeta } from '@wechatsync/core/types'
+import { CodeAdapter } from '../platform-adapters/adapters/code-adapter'
+import type { Article, AuthResult, SyncResult, PlatformMeta } from '../platform-adapters/types'
 
 const HEADER_RULES = [
   {

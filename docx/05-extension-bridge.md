@@ -1,6 +1,6 @@
 # 浏览器扩展桥接层设计
 
-本文档描述 Web App 与 Chrome Extension 之间的通信协议，以及如何复用 Wechatsync 的平台适配器。
+本文档描述 Web App 与 Chrome Extension 之间的通信协议，以及如何复用 平台适配层 的平台适配器。
 
 ---
 
@@ -15,7 +15,7 @@ Content Script（注入到 Web App 页面）
     │
     │  chrome.runtime.sendMessage
     ▼
-Service Worker（运行 Wechatsync 平台适配器）
+Service Worker（运行 平台适配层 平台适配器）
     │
     │  fetch（携带平台 Cookie）
     ▼
@@ -202,7 +202,7 @@ window.addEventListener('message', (event) => {
 ## 5. Service Worker 实现
 
 ```typescript
-// packages/extension/src/background/index.ts（在 Wechatsync 基础上扩展）
+// packages/extension/src/background/index.ts（在 平台适配层 基础上扩展）
 
 import { adapters } from '@xegineer/core'
 import { ExtensionRuntime } from '../runtime/extension'
@@ -257,7 +257,7 @@ async function handleMessage(message: XEgineerMessage): Promise<XEgineerResponse
 
 ---
 
-## 6. 与 Wechatsync 的复用关系
+## 6. 与 平台适配层 的复用关系
 
 | 模块 | 复用策略 |
 |------|----------|

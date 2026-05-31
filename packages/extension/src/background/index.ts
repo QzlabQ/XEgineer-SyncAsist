@@ -1,15 +1,15 @@
 import { ExtensionRuntime } from '../runtime/extension'
 
-// Import Wechatsync adapters via alias (resolved in vite.config.ts)
-import { ZhihuAdapter } from '@wechatsync/core/adapters/platforms/zhihu'
-import { BilibiliAdapter } from '@wechatsync/core/adapters/platforms/bilibili'
-import { JuejinAdapter } from '@wechatsync/core/adapters/platforms/juejin'
-import { WeixinAdapter } from '@wechatsync/core/adapters/platforms/weixin'
-import { CSDNAdapter } from '@wechatsync/core/adapters/platforms/csdn'
+// Platform adapters
+import { ZhihuAdapter } from '../platform-adapters/adapters/platforms/zhihu'
+import { BilibiliAdapter } from '../platform-adapters/adapters/platforms/bilibili'
+import { JuejinAdapter } from '../platform-adapters/adapters/platforms/juejin'
+import { WeixinAdapter } from '../platform-adapters/adapters/platforms/weixin'
+import { CSDNAdapter } from '../platform-adapters/adapters/platforms/csdn'
 import { XiaohongshuAdapter } from '../adapters/xiaohongshu'
 import { JianshuAdapter } from '../adapters/jianshu'
-import type { BaseAdapter } from '@wechatsync/core/adapters/base'
-import type { Article } from '@wechatsync/core/types'
+import type { BaseAdapter } from '../platform-adapters/adapters/base'
+import type { Article } from '../platform-adapters/types'
 
 type AdapterClass = new () => BaseAdapter
 
@@ -200,7 +200,7 @@ async function publishToPlatform(
   options?: { draftOnly?: boolean }
 ): Promise<ScheduledPublishResult> {
   const adapter = await getAdapter(platformId)
-  const result = await adapter.publish(toWechatSyncArticle(article), options)
+  const result = await adapter.publish(toPlatformArticle(article), options)
 
   return {
     platformId,
@@ -214,7 +214,7 @@ async function publishToPlatform(
   }
 }
 
-function toWechatSyncArticle(article: Record<string, unknown>): Article {
+function toPlatformArticle(article: Record<string, unknown>): Article {
   return {
     title: article.title as string,
     markdown: (article.markdownContent as string | undefined) ?? '',
@@ -443,7 +443,7 @@ async function publishExistingDraft(
   const result = await publishDraft.call(adapter, {
     postId: draft.postId,
     postUrl: draft.url,
-    article: article ? toWechatSyncArticle(article) : undefined,
+    article: article ? toPlatformArticle(article) : undefined,
   })
 
   return {

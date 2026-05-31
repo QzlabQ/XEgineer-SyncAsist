@@ -25,12 +25,12 @@ There is no test suite yet. Type-check is the primary correctness gate.
 
 ## Architecture
 
-This is a Yarn Workspaces monorepo with three packages and one app:
+This is a Yarn Workspaces monorepo:
 
 ```
-Wechatsync/          ← git submodule (read-only, platform API adapters)
 packages/renderer/   ← ContentAST types + platform format converters
 packages/extension/  ← Chrome Extension MV3 (Service Worker + Content Script)
+                     │   └── src/platform-adapters/  ← Core adapter framework + 5 platform adapters
 apps/web/            ← Next.js 15 Web App (editor UI)
 ```
 
@@ -44,7 +44,7 @@ Tiptap editor JSON
   → PlatformRenderer.renderPreview() → HTML string (shown in preview panel)
 
 Web App (postMessage) → Content Script → chrome.runtime.sendMessage → Service Worker
-  → Wechatsync Adapter.publish(article) → platform API
+  → Adapter.publish(article) → platform API
 ```
 
 ### ContentAST
@@ -55,8 +55,9 @@ Web App (postMessage) → Content Script → chrome.runtime.sendMessage → Serv
 
 1. Add a renderer in `packages/renderer/src/platforms/<id>.ts` extending `BaseRenderer` — implement `platformId`, `platformName`, `metaSchema`, `render()`, `renderPreview()`.
 2. Register it in `packages/renderer/src/index.ts` (import + add to `renderers` map).
-3. Import the Wechatsync adapter in `packages/extension/src/background/index.ts` and add it to the `ADAPTERS` map.
-4. Run `yarn workspace @xegineer/renderer build` then `yarn workspace @xegineer/extension build`.
+3. Add an adapter in `packages/extension/src/platform-adapters/adapters/platforms/<id>.ts` extending `BaseAdapter` or `CodeAdapter`.
+4. Import and register the adapter in `packages/extension/src/background/index.ts`.
+5. Run `yarn workspace @xegineer/renderer build` then `yarn workspace @xegineer/extension build`.
 
 `BaseRenderer` provides `nodesToHTML`, `nodesToMarkdown`, `inlineToHTML`, `inlineToMarkdown`, and `autoSummary` helpers — use these rather than reimplementing.
 
@@ -64,15 +65,15 @@ Web App (postMessage) → Content Script → chrome.runtime.sendMessage → Serv
 
 `apps/web/src/lib/extension-bridge.ts` exports `getExtensionBridge()` — a lazy singleton that returns `null` during SSR. **Never import `ExtensionBridge` at module top-level** in Next.js code; always call `getExtensionBridge()` inside event handlers or effects. The Zustand publish store (`apps/web/src/stores/publish.ts`) demonstrates the correct pattern.
 
-### Wechatsync submodule
+### Platform adapter framework
 
-`Wechatsync/` is a git submodule pointing to `git@github.com:wechatsync/Wechatsync.git`. Its dependencies are managed by pnpm (not yarn). The extension's `vite.config.ts` resolves `@wechatsync/core/...` imports via a path alias directly to `Wechatsync/packages/core/src/`, so Wechatsync is never built — only its source is consumed.
+The core adapter framework (BaseAdapter, CodeAdapter, RuntimeInterface) and 5 platform adapters (Zhihu, Bilibili, Juejin, Weixin, CSDN) are in `packages/extension/src/platform-adapters/`. Only the files actually used are kept — unused adapters and helper modules were removed.
 
-Wechatsync has an internal private submodule (`wechatsync-private-adapters`). `setup.sh` uses `git submodule update --init Wechatsync` (not `--recursive`) to skip it.
+Type shims for `js-md5` and `juice` are in `src/adapter-shims.d.ts`.
 
 ### ExtensionRuntime
 
-`packages/extension/src/runtime/extension.ts` implements Wechatsync's `RuntimeInterface` for the Chrome Service Worker context. Key details:
+`packages/extension/src/runtime/extension.ts` implements `RuntimeInterface` for the Chrome Service Worker context. Key details:
 - `getCookie` uses `chrome.cookies.getAll({ domain, name })` — not `chrome.cookies.get({ url })` — because domain strings like `.bilibili.com` are not valid URLs.
 - `headerRules.add` returns `"rule_${numericId}"` and uses `ruleIdBase + ruleIdCounter++` to avoid ID collisions. `remove` parses the ID back with `parseInt(id.replace('rule_', ''), 10)`.
 - `declarativeNetRequest` rules include `initiatorDomains: [chrome.runtime.id]` to scope rules to the extension.

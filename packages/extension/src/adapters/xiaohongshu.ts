@@ -4,9 +4,9 @@
  * 小红书创作者中心对跨域 XHR 很敏感，这里走页面自动化：
  * 打开长文发布页、填写内容、尝试排版并点击发布。
  */
-import { BaseAdapter } from '@wechatsync/core/adapters/base'
-import type { PublishOptions } from '@wechatsync/core/adapters/types'
-import type { Article, AuthResult, SyncResult, PlatformMeta } from '@wechatsync/core/types'
+import { BaseAdapter } from '../platform-adapters/adapters/base'
+import type { PublishOptions } from '../platform-adapters/adapters/types'
+import type { Article, AuthResult, SyncResult, PlatformMeta } from '../platform-adapters/types'
 
 const XHS_PUBLISH_URL = 'https://creator.xiaohongshu.com/publish/publish?source=official&target=article'
 

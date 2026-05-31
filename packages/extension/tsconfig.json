@@ -3,11 +3,7 @@
   "compilerOptions": {
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "types": ["chrome", "node"],
-    "baseUrl": ".",
-    "paths": {
-      "@wechatsync/core": ["../../Wechatsync/packages/core/src/index.ts"],
-      "@wechatsync/core/*": ["../../Wechatsync/packages/core/src/*"]
-    }
+    "baseUrl": "."
   },
   "include": ["src", "manifest.json"]
 }

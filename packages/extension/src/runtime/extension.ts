@@ -1,5 +1,5 @@
-import type { RuntimeInterface, RuntimeConfig } from '@wechatsync/core/runtime/interface'
-import type { Cookie, HeaderRule } from '@wechatsync/core/types'
+import type { RuntimeInterface, RuntimeConfig } from '../platform-adapters/runtime/interface'
+import type { Cookie, HeaderRule } from '../platform-adapters/types'
 
 // Extension implementation of RuntimeInterface
 // Runs in Service Worker context

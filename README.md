@@ -29,8 +29,7 @@
 ### 环境要求
 
 - Node.js 20+
-- pnpm（用于初始化 Wechatsync 子模块依赖）
-- yarn 1.x（项目主包管理器）
+- yarn 1.x（包管理器）
 - Chrome 浏览器
 
 ### 一键初始化
@@ -41,7 +40,7 @@ cd XEgineer-SyncAsist
 bash setup.sh
 ```
 
-> `setup.sh` 会自动初始化 Wechatsync submodule（只初始化公开部分，跳过其内部私有 submodule）、安装所有依赖并构建 renderer 包。
+> `setup.sh` 会安装所有依赖并构建 renderer 包。
 
 ### 启动 Web App
 
@@ -65,7 +64,7 @@ yarn workspace @xegineer/extension build
 
 ### 登录各平台
 
-在浏览器中分别访问并登录知乎、B站、掘金，然后在 XEgineer 设置页面（右上角「设置」）点击「全部刷新」检测登录状态。
+在浏览器中分别访问并登录知乎、B站、掘金、微信公众号等平台，然后在 XEgineer 设置页面（右上角「设置」）点击「全部刷新」检测登录状态。
 
 ---
 
@@ -73,19 +72,18 @@ yarn workspace @xegineer/extension build
 
 ```
 XEgineer-SyncAsist/
-├── Wechatsync/              # git submodule — 平台适配器来源
-│   └── packages/core/       # 29+ 平台适配器（知乎、B站、掘金等）
-│
 ├── packages/
 │   ├── renderer/            # 平台格式渲染器
 │   │   ├── src/ast/         # ContentAST 类型定义（平台无关内容模型）
 │   │   ├── src/converters/  # Tiptap JSON → ContentAST
-│   │   └── src/platforms/   # 各平台渲染器（知乎/B站/掘金）
+│   │   └── src/platforms/   # 各平台渲染器（知乎/B站/掘金/微信公众号/CSDN/简书/小红书）
 │   │
 │   └── extension/           # Chrome 扩展（Manifest v3）
-│       ├── src/background/  # Service Worker，调用 Wechatsync 适配器
+│       ├── src/background/  # Service Worker，平台发布入口
 │       ├── src/bridge/      # Content Script，桥接 Web App ↔ Service Worker
-│       └── src/runtime/     # ExtensionRuntime（实现 Wechatsync RuntimeInterface）
+│       ├── src/runtime/     # ExtensionRuntime（Chrome API 封装）
+│       ├── src/adapters/    # 自定义平台适配器
+│       └── src/platform-adapters/  # 平台适配器核心
 │
 ├── apps/
 │   └── web/                 # Next.js 15 Web App
@@ -114,7 +112,7 @@ Chrome Extension (Content Script)
     │
     │  chrome.runtime.sendMessage
     ▼
-Service Worker (Wechatsync 适配器)
+Service Worker（平台适配器）
     │
     │  fetch + 浏览器 Cookie
     ▼
@@ -129,7 +127,7 @@ Service Worker (Wechatsync 适配器)
 
 参考 `docx/07-platform-extension-guide.md`，核心步骤：
 
-1. 在 `Wechatsync/packages/core/src/adapters/platforms/` 新增适配器（或复用已有的 29+ 个）
+1. 在 `packages/extension/src/platform-adapters/adapters/platforms/` 新增适配器（继承 BaseAdapter 或 CodeAdapter）
 2. 在 `packages/renderer/src/platforms/` 新增渲染器
 3. 在 `packages/renderer/src/index.ts` 和 `packages/extension/src/background/index.ts` 各注册一行
 
@@ -162,7 +160,7 @@ yarn workspace @xegineer/web run type-check
 | 样式 | Tailwind CSS |
 | 状态管理 | Zustand |
 | 本地存储 | Dexie.js（IndexedDB） |
-| 平台适配 | Wechatsync packages/core（git submodule） |
+| 平台适配 | 自研 BaseAdapter/CodeAdapter 框架 |
 | 格式转换 | 自研 ContentAST + PlatformRenderer |
 | 浏览器扩展 | Chrome Manifest v3 + CRXJS |
 

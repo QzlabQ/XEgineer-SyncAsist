@@ -70,7 +70,7 @@
 
 **职责**：通过 Chrome 扩展调用各平台 API 完成实际发布
 
-- 复用 Wechatsync `packages/core` 全部平台适配器
+- 复用 平台适配层 `packages/core` 全部平台适配器
 - Web App 通过 postMessage 与扩展通信
 - 扩展 Service Worker 执行 API 调用（携带浏览器 Cookie）
 
@@ -83,7 +83,7 @@
 ```
 xegineer/
 ├── packages/
-│   ├── core/                    # 从 Wechatsync 复用（不改动）
+│   ├── core/                    # 从 平台适配层 复用（不改动）
 │   │   ├── src/adapters/        # 29+ 平台适配器
 │   │   ├── src/runtime/         # RuntimeInterface 抽象
 │   │   └── src/types.ts         # Article、SyncResult 等核心类型
@@ -102,7 +102,7 @@ xegineer/
 │   │   │   └── PlatformConfig/  # 平台专属配置 UI
 │   │   └── src/stores/          # Zustand 状态
 │   │
-│   └── extension/               # 从 Wechatsync 扩展
+│   └── extension/               # 从 平台适配层 扩展
 │       ├── src/background/      # Service Worker（复用）
 │       ├── src/bridge/          # 【新增】与 Web App 通信协议
 │       └── src/runtime/         # Extension RuntimeInterface（复用）
