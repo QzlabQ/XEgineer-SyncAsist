@@ -1,6 +1,6 @@
 import type { Article, AuthResult, SyncResult, PlatformMeta } from '../types'
 import type { RuntimeInterface } from '../runtime/interface'
-import type { PlatformAdapter } from './types'
+import type { PlatformAdapter, PublishOptions } from './types'
 
 /**
  * 适配器基类
@@ -16,7 +16,7 @@ export abstract class BaseAdapter implements PlatformAdapter {
   }
 
   abstract checkAuth(): Promise<AuthResult>
-  abstract publish(article: Article): Promise<SyncResult>
+  abstract publish(article: Article, options?: PublishOptions): Promise<SyncResult>
 
   /**
    * 发送请求

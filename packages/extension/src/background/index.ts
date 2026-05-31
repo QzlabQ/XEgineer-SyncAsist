@@ -26,6 +26,8 @@ const ADAPTERS: Record<string, AdapterClass> = {
 const runtime = new ExtensionRuntime()
 const SCHEDULE_STORAGE_KEY = 'xegineer:scheduled-publishes'
 const SCHEDULE_ALARM_PREFIX = 'xegineer-schedule:'
+const SERIALIZED_DRAFT_PUBLISH_PLATFORMS = new Set(['zhihu', 'weixin'])
+const SERIALIZED_DRAFT_PUBLISH_GAP_MS = 8000
 const executingScheduledJobIds = new Set<string>()
 
 // Pre-init adapters
@@ -192,9 +194,13 @@ async function handleMessage(msg: XEgineerMessage): Promise<XEgineerResponse> {
   }
 }
 
-async function publishToPlatform(platformId: string, article: Record<string, unknown>): Promise<ScheduledPublishResult> {
+async function publishToPlatform(
+  platformId: string,
+  article: Record<string, unknown>,
+  options?: { draftOnly?: boolean }
+): Promise<ScheduledPublishResult> {
   const adapter = await getAdapter(platformId)
-  const result = await adapter.publish(toWechatSyncArticle(article))
+  const result = await adapter.publish(toWechatSyncArticle(article), options)
 
   return {
     platformId,
@@ -234,7 +240,7 @@ async function schedulePublish(input: {
   const now = Date.now()
   const draftResults = await Promise.all(input.targets.map(async target => {
     try {
-      const result = await publishToPlatform(target.platformId, target.article)
+      const result = await publishToPlatform(target.platformId, target.article, { draftOnly: true })
       if (result.success && !result.postId) {
         return {
           ...result,
@@ -324,6 +330,7 @@ async function executeScheduledPublish(jobId: string, options: { force?: boolean
 
     const results: ScheduledPublishResult[] = []
     const existingResults = job.results ?? []
+    let lastSerializedDraftPublishAt = 0
 
     for (const target of job.targets) {
       const draft = existingResults.find(result => result.platformId === target.platformId)
@@ -333,9 +340,16 @@ async function executeScheduledPublish(jobId: string, options: { force?: boolean
         continue
       }
 
+      const shouldSerializeDraftPublish = Boolean(draft?.postId && needsSerializedDraftPublish(target.platformId))
+      if (shouldSerializeDraftPublish && lastSerializedDraftPublishAt) {
+        const elapsed = Date.now() - lastSerializedDraftPublishAt
+        const waitMs = Math.max(0, SERIALIZED_DRAFT_PUBLISH_GAP_MS - elapsed)
+        if (waitMs > 0) await sleep(waitMs)
+      }
+
       try {
         const result = draft?.postId
-          ? await publishExistingDraft(target.platformId, target.platformName, draft)
+          ? await publishExistingDraft(target.platformId, target.platformName, draft, target.article)
           : await publishLegacyScheduledTarget(target)
 
         results.push({
@@ -350,6 +364,10 @@ async function executeScheduledPublish(jobId: string, options: { force?: boolean
           isDraft: true,
           error: error instanceof Error ? error.message : String(error),
         })
+      }
+
+      if (shouldSerializeDraftPublish) {
+        lastSerializedDraftPublishAt = Date.now()
       }
     }
 
@@ -374,7 +392,8 @@ async function executeScheduledPublish(jobId: string, options: { force?: boolean
 async function publishExistingDraft(
   platformId: string,
   platformName: string,
-  draft: ScheduledPublishResult
+  draft: ScheduledPublishResult,
+  article?: Record<string, unknown>
 ): Promise<ScheduledPublishResult> {
   if (!draft.postId) {
     return {
@@ -389,7 +408,7 @@ async function publishExistingDraft(
 
   const adapter = await getAdapter(platformId)
   const draftPublisher = adapter as BaseAdapter & {
-    publishExistingDraft?: (draftRef: { postId: string; postUrl?: string }) => Promise<{
+    publishExistingDraft?: (draftRef: { postId: string; postUrl?: string; article?: Article }) => Promise<{
       success: boolean
       postId?: string
       postUrl?: string
@@ -397,7 +416,7 @@ async function publishExistingDraft(
       error?: string
       message?: string
     }>
-    publishDraft?: (draftRef: { postId: string; postUrl?: string }) => Promise<{
+    publishDraft?: (draftRef: { postId: string; postUrl?: string; article?: Article }) => Promise<{
       success: boolean
       postId?: string
       postUrl?: string
@@ -424,6 +443,7 @@ async function publishExistingDraft(
   const result = await publishDraft.call(adapter, {
     postId: draft.postId,
     postUrl: draft.url,
+    article: article ? toWechatSyncArticle(article) : undefined,
   })
 
   return {
@@ -451,6 +471,14 @@ async function publishLegacyScheduledTarget(target: ScheduledPublishTarget): Pro
 
 function isAwaitingScheduledPublish(status: ScheduledPublishStatus): boolean {
   return status === 'scheduled' || status === 'draft_ready'
+}
+
+function needsSerializedDraftPublish(platformId: string): boolean {
+  return SERIALIZED_DRAFT_PUBLISH_PLATFORMS.has(platformId)
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms))
 }
 
 async function restoreScheduledPublishAlarms(): Promise<void> {

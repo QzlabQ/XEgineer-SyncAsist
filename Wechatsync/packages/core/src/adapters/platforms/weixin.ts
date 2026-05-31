@@ -18,6 +18,30 @@ interface WeixinMeta {
   avatar: string
 }
 
+interface WeixinMassSendSession {
+  operationSeq?: string
+  requiresSafeScan: boolean
+}
+
+interface WeixinMassSendResponse {
+  msgid?: string | number
+  ret?: number
+  err_msg?: string
+  base_resp?: {
+    ret?: number
+    err_msg?: string
+  }
+}
+
+interface WeixinPagePublishResult {
+  attempted: boolean
+  clicked: boolean
+  confirmed: boolean
+  published: boolean
+  href: string
+  message?: string
+}
+
 // 微信公众号的默认 CSS 样式
 const WEIXIN_CSS = `
 p {
@@ -258,7 +282,7 @@ export class WeixinAdapter extends CodeAdapter {
         throw new Error(errMsg)
       }
 
-      const draftUrl = `https://mp.weixin.qq.com/cgi-bin/appmsg?t=media/appmsg_edit&action=edit&type=77&appmsgid=${res.appMsgId}&token=${this.weixinMeta!.token}&lang=zh_CN`
+      const draftUrl = this.buildDraftUrl(res.appMsgId, this.weixinMeta!.token)
 
       return this.createResult(true, {
         postId: res.appMsgId,
@@ -268,6 +292,416 @@ export class WeixinAdapter extends CodeAdapter {
     }).catch((error) => this.createResult(false, {
       error: (error as Error).message,
     }))
+  }
+
+  async publishExistingDraft(draftRef: { postId: string; postUrl?: string }): Promise<SyncResult> {
+    return this.withHeaderRules(this.HEADER_RULES, async () => {
+      logger.info('Publishing existing Weixin draft...', draftRef.postId)
+
+      if (!this.weixinMeta) {
+        const auth = await this.checkAuth()
+        if (!auth.isAuthenticated) {
+          throw new Error('请先登录微信公众号')
+        }
+      }
+
+      const token = this.weixinMeta!.token
+      const draftUrl = draftRef.postUrl ?? this.buildDraftUrl(draftRef.postId, token)
+      const session = await this.getMassSendSession(token)
+
+      if (session.requiresSafeScan) {
+        throw new Error('微信公众号群发需要管理员扫码确认，无法在后台定时自动完成；草稿仍已保留')
+      }
+
+      await this.checkAppMsgCopyright(draftRef.postId, token, true)
+      await this.checkAppMsgCopyright(draftRef.postId, token, false)
+
+      const response = await this.runtime.fetch(
+        `https://mp.weixin.qq.com/cgi-bin/masssend?t=ajax-response&token=${token}`,
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: this.createMassSendForm(draftRef.postId, token, session.operationSeq),
+        }
+      )
+
+      const res = await response.json() as WeixinMassSendResponse
+      logger.debug('Mass send response:', res)
+
+      const ret = res.base_resp?.ret ?? res.ret
+      if (ret !== 0) {
+        if (this.shouldFallbackToPagePublish(res)) {
+          logger.warn('Weixin backend masssend was not accepted, trying page automation...', res)
+          const pageResult = await this.publishExistingDraftFromPage(draftRef.postId, draftUrl)
+
+          if (pageResult.published) {
+            return this.createResult(true, {
+              postId: draftRef.postId,
+              postUrl: pageResult.href || draftUrl,
+              draftOnly: false,
+              message: pageResult.message ?? '已通过微信公众号页面自动点击完成发布',
+            })
+          }
+
+          const pageMessage = pageResult.message ? `；页面自动化：${pageResult.message}` : ''
+          throw new Error(`${this.formatMassSendError(res)}${pageMessage}`)
+        }
+
+        throw new Error(this.formatMassSendError(res))
+      }
+
+      return this.createResult(true, {
+        postId: draftRef.postId,
+        postUrl: draftUrl,
+        draftOnly: false,
+        message: '已通过微信公众号后台群发接口发布草稿',
+      })
+    }).catch((error) => this.createResult(false, {
+      postId: draftRef.postId,
+      postUrl: draftRef.postUrl,
+      draftOnly: true,
+      error: (error as Error).message,
+    }))
+  }
+
+  private async publishExistingDraftFromPage(appMsgId: string, draftUrl: string): Promise<WeixinPagePublishResult> {
+    if (!this.runtime.tabs) {
+      return {
+        attempted: false,
+        clicked: false,
+        confirmed: false,
+        published: false,
+        href: draftUrl,
+        message: '当前运行时不支持浏览器页面自动化',
+      }
+    }
+
+    const tab = await this.runtime.tabs.create(draftUrl, true)
+    if (!tab?.id) {
+      return {
+        attempted: false,
+        clicked: false,
+        confirmed: false,
+        published: false,
+        href: draftUrl,
+        message: '无法打开微信公众号草稿编辑页',
+      }
+    }
+
+    try {
+      await this.runtime.tabs.waitForLoad(tab.id, 30000)
+    } catch {
+      logger.warn('Weixin draft page load timeout, trying to continue...')
+    }
+
+    try {
+      return await this.runtime.tabs.executeScript(
+        tab.id,
+        async (draftId: string): Promise<WeixinPagePublishResult> => {
+          void draftId
+          const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+          const normalize = (value: string) => value.replace(/\s+/g, '')
+          const getText = (element: Element) => normalize(
+            (element as HTMLElement).innerText ||
+            element.textContent ||
+            element.getAttribute('aria-label') ||
+            element.getAttribute('title') ||
+            ''
+          )
+          const isVisible = (element: Element) => {
+            const rect = element.getBoundingClientRect()
+            const style = window.getComputedStyle(element)
+            return rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && style.display !== 'none'
+          }
+          const isDisabled = (element: HTMLElement) => {
+            return Boolean(
+              (element as HTMLButtonElement).disabled ||
+              element.getAttribute('aria-disabled') === 'true' ||
+              /\bdisabled\b/i.test(element.className)
+            )
+          }
+          const click = (element: HTMLElement) => {
+            element.scrollIntoView({ block: 'center', inline: 'center' })
+            element.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType: 'mouse' }))
+            element.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
+            element.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerType: 'mouse' }))
+            element.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }))
+            element.click()
+          }
+          const collectMessages = () => {
+            const selectors = [
+              '[role="alert"]',
+              '[class*="toast"]',
+              '[class*="Toast"]',
+              '[class*="message"]',
+              '[class*="Message"]',
+              '[class*="dialog"]',
+              '[class*="Dialog"]',
+              '[class*="modal"]',
+              '[class*="Modal"]',
+              '.weui-desktop-msg',
+              '.weui-desktop-dialog',
+              '.weui-desktop-tips',
+            ]
+            const texts = selectors.flatMap(selector => Array.from(document.querySelectorAll(selector)))
+              .filter(isVisible)
+              .map(getText)
+              .filter(text => text && text.length <= 180)
+            return Array.from(new Set(texts)).slice(0, 6).join('；')
+          }
+          const pageText = () => normalize(document.body?.innerText || '')
+          const hasAny = (text: string, labels: string[]) => labels.some(label => text.includes(normalize(label)))
+          const successLabels = ['群发成功', '发表成功', '发布成功', '发送成功', '操作成功']
+          const blockingLabels = ['扫码', '二维码', '管理员确认', '群发保护', '微信扫一扫', '安全验证']
+          const buttonSelectors = [
+            'button',
+            'a',
+            '[role="button"]',
+            '.weui-desktop-btn',
+            '[class*="btn"]',
+            '[class*="Button"]',
+          ].join(',')
+          const ignoredButtonTextParts = ['功能', '记录', '管理', '设置', '素材', '草稿箱', '历史', '删除', '预览']
+          const findButton = (labels: string[]) => {
+            const normalizedLabels = labels.map(normalize)
+            const candidates = Array.from(document.querySelectorAll(buttonSelectors))
+              .filter(isVisible)
+              .map(element => element as HTMLElement)
+              .filter(element => !isDisabled(element))
+
+            const scored = candidates.map(element => {
+              const text = getText(element)
+              if (!text || ignoredButtonTextParts.some(part => text.includes(part))) {
+                return { element, score: Number.POSITIVE_INFINITY }
+              }
+
+              const exactIndex = normalizedLabels.findIndex(label => text === label)
+              if (exactIndex >= 0) return { element, score: exactIndex }
+
+              const includeIndex = normalizedLabels.findIndex(label => text.includes(label) && text.length <= label.length + 4)
+              if (includeIndex >= 0) {
+                const primaryBias = /primary|important|submit/i.test(element.className) ? -0.25 : 0
+                return { element, score: normalizedLabels.length + includeIndex + primaryBias }
+              }
+
+              return { element, score: Number.POSITIVE_INFINITY }
+            })
+              .filter(item => Number.isFinite(item.score))
+              .sort((a, b) => a.score - b.score)
+
+            return scored[0]?.element
+          }
+          const findCheckbox = () => {
+            const inputs = Array.from(document.querySelectorAll('input[type="checkbox"]'))
+              .filter(isVisible) as HTMLInputElement[]
+            return inputs.find(input => !input.checked)
+          }
+          const isPublished = () => {
+            return hasAny(collectMessages(), successLabels)
+          }
+          const isBlocked = () => {
+            const text = `${pageText()}；${collectMessages()}`
+            return hasAny(text, blockingLabels)
+          }
+          const clickFirst = (labels: string[]) => {
+            const button = findButton(labels)
+            if (!button) return false
+            click(button)
+            return true
+          }
+
+          let clicked = false
+          let confirmed = false
+          await sleep(1800)
+
+          const primaryLabels = ['群发', '发表', '发布', '立即群发', '立即发布', '发布文章', '发表文章', '保存并群发']
+          clicked = clickFirst(primaryLabels)
+
+          if (!clicked) {
+            return {
+              attempted: true,
+              clicked: false,
+              confirmed: false,
+              published: isPublished(),
+              href: location.href,
+              message: collectMessages() || '未找到微信公众号发布/群发按钮',
+            }
+          }
+
+          const confirmLabels = ['确认群发', '确定群发', '继续群发', '立即群发', '确认发布', '确定发布', '继续发布', '立即发布', '确认', '确定', '群发', '发布', '发表']
+
+          for (let i = 0; i < 18; i++) {
+            await sleep(1000)
+
+            if (isPublished()) {
+              return {
+                attempted: true,
+                clicked,
+                confirmed,
+                published: true,
+                href: location.href,
+                message: collectMessages() || '微信公众号页面提示发布成功',
+              }
+            }
+
+            if (isBlocked()) {
+              return {
+                attempted: true,
+                clicked,
+                confirmed,
+                published: false,
+                href: location.href,
+                message: collectMessages() || '微信公众号需要扫码/管理员确认，无法全自动完成',
+              }
+            }
+
+            const checkbox = findCheckbox()
+            if (checkbox) checkbox.click()
+
+            if (clickFirst(confirmLabels)) {
+              confirmed = true
+            }
+          }
+
+          return {
+            attempted: true,
+            clicked,
+            confirmed,
+            published: isPublished(),
+            href: location.href,
+            message: collectMessages() || (confirmed ? '已点击发布确认，但未检测到成功提示' : '已点击发布按钮，但未检测到确认或成功提示'),
+          }
+        },
+        [appMsgId]
+      )
+    } catch (error) {
+      return {
+        attempted: true,
+        clicked: false,
+        confirmed: false,
+        published: false,
+        href: draftUrl,
+        message: error instanceof Error ? error.message : String(error),
+      }
+    }
+  }
+
+  private shouldFallbackToPagePublish(res: WeixinMassSendResponse): boolean {
+    const ret = res.base_resp?.ret ?? res.ret
+    return ret === 720006
+  }
+
+  private async getMassSendSession(token: string): Promise<WeixinMassSendSession> {
+    const response = await this.runtime.fetch(
+      `https://mp.weixin.qq.com/cgi-bin/masssendpage?t=mass/send&token=${token}&lang=zh_CN`,
+      {
+        method: 'GET',
+        credentials: 'include',
+      }
+    )
+
+    if (!response.ok) {
+      throw new Error(`获取微信公众号群发参数失败: ${response.status}`)
+    }
+
+    const html = await response.text()
+    const operationSeq = html.match(/operation_seq:\s*["'](\d+)["']/)?.[1]
+    const protectStatus = Number(html.match(/"protect_status":\s*(\d+)/)?.[1] ?? 0)
+
+    return {
+      operationSeq,
+      requiresSafeScan: (protectStatus & 2) === 2,
+    }
+  }
+
+  private async checkAppMsgCopyright(appMsgId: string, token: string, firstCheck: boolean): Promise<void> {
+    try {
+      const response = await this.runtime.fetch(
+        `https://mp.weixin.qq.com/cgi-bin/masssend?action=get_appmsg_copyright_stat&token=${token}`,
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: new URLSearchParams({
+            token,
+            f: 'json',
+            ajax: '1',
+            first_check: firstCheck ? '1' : '0',
+            appmsgid: appMsgId,
+            type: '10',
+          }),
+        }
+      )
+
+      const res = await response.json() as WeixinMassSendResponse
+      const ret = res.base_resp?.ret ?? res.ret
+      if (ret && ret !== 0) {
+        logger.warn('Weixin copyright check returned non-zero:', res)
+      }
+    } catch (error) {
+      logger.warn('Weixin copyright check failed, continuing to masssend:', error)
+    }
+  }
+
+  private createMassSendForm(appMsgId: string, token: string, operationSeq?: string): URLSearchParams {
+    const formData = new URLSearchParams({
+      token,
+      f: 'json',
+      ajax: '1',
+      random: String(Math.random()),
+      smart_product: '0',
+      cardlimit: '1',
+      sex: '0',
+      synctxweibo: '0',
+      direct_send: '1',
+      req_id: this.generateReqId(),
+      req_time: String(Date.now()),
+      type: '10',
+      appmsgid: appMsgId,
+      groupid: '-1',
+      send_time: '0',
+    })
+
+    if (operationSeq) {
+      formData.set('operation_seq', operationSeq)
+    }
+
+    return formData
+  }
+
+  private generateReqId(length = 32): string {
+    const chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    let result = ''
+    for (let i = 0; i < length; i++) {
+      result += chars[Math.floor(Math.random() * chars.length)]
+    }
+    return result
+  }
+
+  private buildDraftUrl(appMsgId: string, token?: string): string {
+    const params = new URLSearchParams({
+      t: 'media/appmsg_edit',
+      action: 'edit',
+      type: '77',
+      appmsgid: appMsgId,
+      token: token ?? this.weixinMeta?.token ?? '',
+      lang: 'zh_CN',
+    })
+    return `https://mp.weixin.qq.com/cgi-bin/appmsg?${params.toString()}`
+  }
+
+  private formatMassSendError(res: WeixinMassSendResponse): string {
+    const ret = res.base_resp?.ret ?? res.ret
+    const errMsg = res.base_resp?.err_msg ?? res.err_msg
+    const code = ret ?? 'unknown'
+    return errMsg && errMsg !== 'ok'
+      ? `微信公众号群发失败 (${code}): ${errMsg}`
+      : `微信公众号群发失败 (错误码 ${code})`
   }
 
   private async resolveCoverImage(cover?: string): Promise<string> {
