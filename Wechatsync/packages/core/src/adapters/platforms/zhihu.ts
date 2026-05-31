@@ -154,12 +154,45 @@ export class ZhihuAdapter extends CodeAdapter {
       content = this.transformContent(content)
 
       // 5. 更新草稿内容
-      let updateResponse = await this.updateDraft(draftId, article.title, content, coverResult.url)
+      const hasSummaryOrTags = Boolean(article.summary?.trim() || article.tags?.some(tag => tag.trim()))
+      let updateResponse = await this.updateDraft(draftId, article.title, content, {
+        coverUrl: coverResult.url,
+        summary: article.summary,
+        tags: article.tags,
+      })
+
+      if (!updateResponse.ok && coverResult.url && hasSummaryOrTags) {
+        const updateText = await updateResponse.text()
+        logger.warn('Update draft with full metadata failed, retrying with cover metadata only:', updateResponse.status, updateText)
+        updateResponse = await this.updateDraft(draftId, article.title, content, { coverUrl: coverResult.url })
+        if (updateResponse.ok) {
+          fallbackMessage = this.appendMessage(
+            fallbackMessage,
+            'Zhihu did not accept summary/tags metadata; saved draft content and cover.'
+          )
+        }
+      }
 
       if (!updateResponse.ok && coverResult.url) {
         const updateText = await updateResponse.text()
         logger.warn('Update draft with cover metadata failed, retrying without cover metadata:', updateResponse.status, updateText)
-        fallbackMessage = '知乎未接受封面字段，已回退为无封面草稿；正文内容已保存，请在知乎编辑器中手动设置封面。'
+        fallbackMessage = this.appendMessage(
+          fallbackMessage,
+          'Zhihu did not accept cover metadata; saved draft without cover.'
+        )
+        updateResponse = await this.updateDraft(draftId, article.title, content, {
+          summary: article.summary,
+          tags: article.tags,
+        })
+      }
+
+      if (!updateResponse.ok && hasSummaryOrTags) {
+        const updateText = await updateResponse.text()
+        logger.warn('Update draft with summary/tags metadata failed, retrying without summary/tags metadata:', updateResponse.status, updateText)
+        fallbackMessage = this.appendMessage(
+          fallbackMessage,
+          'Zhihu did not accept summary/tags metadata; saved draft without them.'
+        )
         updateResponse = await this.updateDraft(draftId, article.title, content)
       }
 
@@ -509,21 +542,41 @@ export class ZhihuAdapter extends CodeAdapter {
     }
   }
 
+  private appendMessage(current: string | undefined, next: string): string {
+    return current ? `${current} ${next}` : next
+  }
+
   private async updateDraft(
     draftId: string,
     title: string,
     content: string,
-    coverUrl?: string
+    metadata: {
+      coverUrl?: string
+      summary?: string
+      tags?: string[]
+    } = {}
   ): Promise<Response> {
     const payload: Record<string, unknown> = {
       title,
       content,
     }
 
+    const coverUrl = metadata.coverUrl
     if (coverUrl) {
       payload.titleImage = coverUrl
       payload.title_image = coverUrl
       payload.image_url = coverUrl
+    }
+
+    const summary = metadata.summary?.trim()
+    if (summary) {
+      payload.summary = summary
+      payload.excerpt = summary
+    }
+
+    const topics = (metadata.tags ?? []).map(tag => tag.trim()).filter(Boolean)
+    if (topics.length) {
+      payload.topics = topics
     }
 
     return this.runtime.fetch(

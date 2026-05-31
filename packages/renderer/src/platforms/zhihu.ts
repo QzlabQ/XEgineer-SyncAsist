@@ -12,12 +12,18 @@ export class ZhihuRenderer extends BaseRenderer {
   ]
 
   render(doc: ContentDocument, config: PlatformConfig): PlatformPayload {
+    const tags = config.tags ?? doc.meta.tags
+    const summary = config.summary ?? this.autoSummary(doc)
+    const cover = config.cover ?? doc.meta.cover
+
     return {
       title: doc.meta.title,
       content: this.nodesToHTML(doc.body),
-      topics: config.tags ?? doc.meta.tags,
-      cover: config.cover ?? doc.meta.cover,
-      excerpt: config.summary ?? this.autoSummary(doc),
+      tags,
+      topics: tags,
+      cover,
+      summary,
+      excerpt: summary,
       isDraft: config.isDraft ?? true,
     }
   }
