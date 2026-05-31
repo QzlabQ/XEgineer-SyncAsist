@@ -6,6 +6,7 @@ export class CSDNRenderer extends BaseRenderer {
   platformName = 'CSDN'
 
   metaSchema: MetaField[] = [
+    { key: 'title', label: '标题', type: 'text', placeholder: '不填则使用文章标题' },
     { key: 'cover', label: '封面图', type: 'image' },
     { key: 'summary', label: '摘要', type: 'textarea', placeholder: '不填则自动截取正文前120字' },
     { key: 'tags', label: '标签', type: 'tags', placeholder: '逗号分隔' },
@@ -25,8 +26,12 @@ export class CSDNRenderer extends BaseRenderer {
   ]
 
   render(doc: ContentDocument, config: PlatformConfig): PlatformPayload {
+    const title = typeof config.title === 'string' && config.title.trim()
+      ? config.title.trim()
+      : doc.meta.title
+
     return {
-      title: doc.meta.title,
+      title,
       markdownContent: this.nodesToMarkdown(doc.body),
       content: this.nodesToHTML(doc.body),
       cover: config.cover ?? doc.meta.cover,

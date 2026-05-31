@@ -236,10 +236,10 @@ export abstract class CodeAdapter implements PlatformAdapter {
     const matches: { full: string; src: string; alt?: string; type: 'html' | 'markdown' }[] = []
 
     // 1. HTML 格式: <img ... src="url" ...>
-    const htmlImgRegex = /<img[^>]+src="([^"]+)"[^>]*>/gi
+    const htmlImgRegex = /<img\b[^>]*\ssrc\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s>]+))[^>]*>/gi
     let match
     while ((match = htmlImgRegex.exec(content)) !== null) {
-      matches.push({ full: match[0], src: match[1], type: 'html' })
+      matches.push({ full: match[0], src: match[1] ?? match[2] ?? match[3] ?? '', type: 'html' })
     }
 
     // 2. Markdown 格式: ![alt](url)

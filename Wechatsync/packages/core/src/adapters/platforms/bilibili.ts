@@ -211,17 +211,32 @@ export class BilibiliAdapter extends CodeAdapter {
   private sanitizeContentImages(html: string): { content: string; removed: number; removedSources: string[] } {
     let removed = 0
     const removedSources: string[] = []
-    const content = html.replace(/<img\b[^>]*\bsrc=(["'])(.*?)\1[^>]*>/gi, (match, quote: string, src: string) => {
-      const normalizedSrc = this.normalizeContentImageSrc(src)
-      if (this.isAllowedContentImage(normalizedSrc)) {
-        return normalizedSrc === src ? match : match.replace(`${quote}${src}${quote}`, `${quote}${normalizedSrc}${quote}`)
-      }
+    const content = html.replace(
+      /<img\b[^>]*\ssrc\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))[^>]*>/gi,
+      (match, doubleQuotedSrc: string | undefined, singleQuotedSrc: string | undefined, unquotedSrc: string | undefined) => {
+        const src = doubleQuotedSrc ?? singleQuotedSrc ?? unquotedSrc ?? ''
+        const normalizedSrc = this.normalizeContentImageSrc(src)
+        if (this.isAllowedContentImage(normalizedSrc)) {
+          if (normalizedSrc === src) return match
+          const quotedNeedle = doubleQuotedSrc !== undefined
+            ? `"${src}"`
+            : singleQuotedSrc !== undefined
+              ? `'${src}'`
+              : src
+          const quotedReplacement = doubleQuotedSrc !== undefined
+            ? `"${normalizedSrc}"`
+            : singleQuotedSrc !== undefined
+              ? `'${normalizedSrc}'`
+              : normalizedSrc
+          return match.replace(quotedNeedle, quotedReplacement)
+        }
 
-      removed++
-      removedSources.push(this.formatImageSourceForMessage(src))
-      logger.warn('Removing unsupported Bilibili content image:', src)
-      return ''
-    })
+        removed++
+        removedSources.push(this.formatImageSourceForMessage(src))
+        logger.warn('Removing unsupported Bilibili content image:', src)
+        return ''
+      }
+    )
 
     return { content, removed, removedSources: Array.from(new Set(removedSources)).slice(0, 3) }
   }

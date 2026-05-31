@@ -194,6 +194,7 @@ export class CSDNAdapter extends CodeAdapter {
 
       // Use pre-processed markdown content directly
       let markdown = article.markdown || ''
+      let fallbackMessage = ''
 
       // Process images in markdown
       markdown = await this.processImages(
@@ -205,8 +206,17 @@ export class CSDNAdapter extends CodeAdapter {
         }
       )
 
+      const sanitizedMarkdown = this.removeUnsupportedInlineImages(markdown)
+      markdown = sanitizedMarkdown.markdown
+      if (sanitizedMarkdown.removed > 0) {
+        fallbackMessage = this.appendMessage(
+          fallbackMessage,
+          `CSDN 不支持 ${sanitizedMarkdown.removed} 张内联 base64 图片，已先移除以保存草稿；请在 CSDN 编辑器中手动补图。`
+        )
+      }
+
       // Get HTML content (CSDN API needs both markdown and HTML)
-      const htmlContent = article.html || ''
+      const htmlContent = this.removeUnsupportedHtmlInlineImages(article.html || '')
       const coverImages = await this.resolveCoverImages(article.cover)
 
       // Generate signature and save article
@@ -265,6 +275,7 @@ export class CSDNAdapter extends CodeAdapter {
         postId: postId,
         postUrl: draftUrl,
         draftOnly: options?.draftOnly ?? true,
+        message: fallbackMessage || undefined,
       })
     }).catch((error) => this.createResult(false, {
       error: (error as Error).message,
@@ -281,6 +292,27 @@ export class CSDNAdapter extends CodeAdapter {
       logger.warn('Failed to upload cover, saving draft without cover:', error)
       return []
     }
+  }
+
+  private removeUnsupportedInlineImages(markdown: string): { markdown: string; removed: number } {
+    let removed = 0
+    const cleaned = markdown.replace(/!\[[^\]]*]\s*\(\s*data:image\/[^)]+\)/gi, () => {
+      removed++
+      return ''
+    })
+
+    return {
+      markdown: cleaned.replace(/\n{3,}/g, '\n\n'),
+      removed,
+    }
+  }
+
+  private removeUnsupportedHtmlInlineImages(html: string): string {
+    return html.replace(/<img\b[^>]*\ssrc\s*=\s*(?:"data:image\/[^"]*"|'data:image\/[^']*'|data:image\/[^\s>]+)[^>]*>/gi, '')
+  }
+
+  private appendMessage(current: string, next: string): string {
+    return current ? `${current} ${next}` : next
   }
 
   /**
@@ -306,14 +338,14 @@ export class CSDNAdapter extends CodeAdapter {
    */
   protected async uploadImageByUrl(src: string): Promise<ImageUploadResult> {
     // 1. 下载图片
-    const imageResponse = await fetch(src)
+    const imageResponse = await this.runtime.fetch(src)
     if (!imageResponse.ok) {
       throw new Error('图片下载失败: ' + src)
     }
     const imageBlob = await imageResponse.blob()
 
     // 2. 获取文件扩展名
-    const ext = src.split('.').pop()?.toLowerCase()?.split('?')[0] || 'jpg'
+    const ext = this.detectImageExtension(src, imageBlob)
     const validExt = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext) ? ext : 'jpg'
 
     // 3. 获取上传签名 (新 API: bizapi.csdn.net)
@@ -360,8 +392,7 @@ export class CSDNAdapter extends CodeAdapter {
     logger.debug('Upload signature response:', signatureData)
 
     if (signatureData.code !== 200 || !signatureData.data) {
-      logger.warn('Failed to get upload signature, using original URL')
-      return { url: src }
+      throw new Error('获取 CSDN 图片上传签名失败')
     }
 
     const uploadData = signatureData.data
@@ -398,12 +429,23 @@ export class CSDNAdapter extends CodeAdapter {
     logger.debug('OBS upload response:', obsRes)
 
     if (obsRes.code !== 200 || !obsRes.data?.imageUrl) {
-      logger.warn('OBS upload failed, using original URL')
-      return { url: src }
+      throw new Error('CSDN 图片上传失败')
     }
 
     return {
       url: obsRes.data.imageUrl,
     }
+  }
+
+  private detectImageExtension(src: string, blob: Blob): string {
+    const mimeExt = blob.type.split('/')[1]?.toLowerCase()
+    if (mimeExt === 'jpeg') return 'jpg'
+    if (mimeExt && ['jpg', 'png', 'gif', 'webp'].includes(mimeExt)) return mimeExt
+
+    const dataUriMime = src.match(/^data:image\/([^;,]+)/i)?.[1]?.toLowerCase()
+    if (dataUriMime === 'jpeg') return 'jpg'
+    if (dataUriMime && ['jpg', 'png', 'gif', 'webp'].includes(dataUriMime)) return dataUriMime
+
+    return src.split('.').pop()?.toLowerCase()?.split('?')[0] || 'jpg'
   }
 }
