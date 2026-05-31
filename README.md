@@ -6,7 +6,7 @@
 
 展示链接：
 
-github issue: https://github.com/QzlabQ/XEgineer-SyncAsist/issues/1
+清晰的原视频: https://github.com/QzlabQ/XEgineer-SyncAsist/issues/2
 
 展示视频：
 
