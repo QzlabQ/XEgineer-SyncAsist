@@ -202,6 +202,7 @@ export const useArticleStore = create<ArticleStore>((set, get) => ({
     if (!user) return
     if (get().syncStatus === 'syncing') return
     const previousCurrentId = get().currentId
+    const previousCurrent = get().current
     set({
       syncStatus: 'syncing',
       syncError: '',
@@ -213,6 +214,10 @@ export const useArticleStore = create<ArticleStore>((set, get) => ({
     })
     try {
       await get().clearSessionCache(user.id)
+      // Restore current article after cache clear (sync was triggered by auth state change)
+      if (previousCurrentId && previousCurrent) {
+        set({ currentId: previousCurrentId, current: previousCurrent })
+      }
       await syncLocalToCloud(syncDebug => set({ syncDebug }), user.id)
       await get().loadArticles()
       if (previousCurrentId) await get().loadArticle(previousCurrentId)
