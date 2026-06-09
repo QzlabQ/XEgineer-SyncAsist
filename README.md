@@ -48,14 +48,29 @@ https://github.com/user-attachments/assets/9d059914-92e6-40dc-b1df-c47f3e03f1f6
 
 - Node.js 20+
 - yarn 1.x（包管理器）
+- Docker + Docker Compose（运行数据库）
 - Chrome 浏览器
 
-### 一键初始化
-（以下命令请在git bash里执行）
+### 初始化
+
 ```bash
+# 克隆项目
 git clone git@github.com:QzlabQ/XEgineer-SyncAsist.git
 cd XEgineer-SyncAsist
+
+# 安装依赖 + 构建
 bash setup.sh
+
+# 创建环境配置
+cp apps/web/.env.example apps/web/.env
+# 编辑 apps/web/.env，修改 JWT_SECRET 等敏感配置
+```
+
+### 启动数据库
+
+```bash
+docker compose up -d postgres
+yarn workspace @xegineer/web prisma db push
 ```
 
 ### 启动 Web App
