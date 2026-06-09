@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { ArrowUpDown, Plus, FileText, Trash2, History, Search, AlertTriangle, X, Users } from 'lucide-react'
 import { useArticleStore } from '@/stores/article'
 import { getExtensionBridge } from '@/lib/extension-bridge'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { AccountMenu } from '@/components/Auth/AccountMenu'
 
 export default function ArticlesPage() {
@@ -113,18 +114,19 @@ export default function ArticlesPage() {
               className="w-full rounded-md border border-[var(--border-default)] bg-[var(--bg-surface)] pl-9 pr-3 py-2 text-[13px] focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)] transition-all duration-[120ms] ease-out placeholder:text-[var(--fg-tertiary)] hover:border-[var(--border-hover)]"
             />
           </label>
-          <label className="relative sm:w-44">
-            <ArrowUpDown size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--fg-tertiary)]" />
-            <select
-              value={sortBy}
-              onChange={event => setSortBy(event.target.value as 'updated' | 'created' | 'title')}
-              className="w-full appearance-none rounded-md border border-[var(--border-default)] bg-[var(--bg-surface)] pl-9 pr-3 py-2 text-[13px] focus:outline-none focus:border-[var(--accent)] transition-all duration-[120ms] ease-out hover:border-[var(--border-hover)] cursor-pointer"
-            >
-              <option value="updated">最近更新</option>
-              <option value="created">最近创建</option>
-              <option value="title">标题 A-Z</option>
-            </select>
-          </label>
+          <div className="relative sm:w-44">
+            <ArrowUpDown size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--fg-tertiary)] z-10 pointer-events-none" />
+            <Select value={sortBy} onValueChange={v => setSortBy(v as 'updated' | 'created' | 'title')}>
+              <SelectTrigger className="w-full pl-9 h-auto py-2 text-[13px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="updated">最近更新</SelectItem>
+                <SelectItem value="created">最近创建</SelectItem>
+                <SelectItem value="title">标题 A-Z</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {articles.length === 0 ? (

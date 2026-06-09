@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Loader2, Plus, Trash2, Users } from 'lucide-react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   addTeamMember,
   createTeam,
@@ -167,17 +168,18 @@ export default function TeamsPage() {
                     value={memberEmail}
                     onChange={event => setMemberEmail(event.target.value)}
                     placeholder="成员邮箱"
-                    className="min-w-0 rounded-md border border-[var(--border-default)] bg-[var(--bg-surface)] px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+                    className="min-w-0 rounded-md border border-[var(--border-default)] bg-[var(--bg-surface)] px-3 py-2 text-[13px] focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)] transition-all duration-[120ms] ease-out hover:border-[var(--border-hover)]"
                   />
-                  <select
-                    value={memberRole}
-                    onChange={event => setMemberRole(event.target.value as CollaborationRole)}
-                    className="rounded-md border border-[var(--border-default)] bg-[var(--bg-surface)] px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
-                  >
-                    <option value="EDITOR">Editor</option>
-                    <option value="VIEWER">Viewer</option>
-                    <option value="OWNER">Owner</option>
-                  </select>
+                  <Select value={memberRole} onValueChange={v => setMemberRole(v as CollaborationRole)}>
+                    <SelectTrigger className="h-auto py-2 text-[13px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="EDITOR">Editor</SelectItem>
+                      <SelectItem value="VIEWER">Viewer</SelectItem>
+                      <SelectItem value="OWNER">Owner</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <button type="submit" className="rounded-md bg-[var(--accent)] text-sm text-white hover:bg-[var(--accent-hover)]">邀请</button>
                 </form>
               )}
@@ -195,15 +197,19 @@ export default function TeamsPage() {
                       <div className="truncate text-xs text-[var(--fg-tertiary)]">{member.user.email}</div>
                     </div>
                     {canManage ? (
-                      <select
+                      <Select
                         value={member.role}
-                        onChange={event => void updateTeamMember(selected.id, member.id, event.target.value as CollaborationRole).then(refresh).catch(err => setError(err instanceof Error ? err.message : String(err)))}
-                        className="w-28 rounded-md border border-[var(--border-default)] px-2 py-1.5 text-xs focus:outline-none focus:border-blue-400"
+                        onValueChange={v => void updateTeamMember(selected.id, member.id, v as CollaborationRole).then(refresh).catch(err => setError(err instanceof Error ? err.message : String(err)))}
                       >
-                        <option value="OWNER">Owner</option>
-                        <option value="EDITOR">Editor</option>
-                        <option value="VIEWER">Viewer</option>
-                      </select>
+                        <SelectTrigger className="h-auto w-28 py-1.5 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="OWNER">Owner</SelectItem>
+                          <SelectItem value="EDITOR">Editor</SelectItem>
+                          <SelectItem value="VIEWER">Viewer</SelectItem>
+                        </SelectContent>
+                      </Select>
                     ) : (
                       <span className="text-sm text-[var(--fg-secondary)]">{member.role}</span>
                     )}
