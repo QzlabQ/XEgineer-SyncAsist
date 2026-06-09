@@ -6,6 +6,7 @@ import {
   Bot, Check, Clipboard, Download, FileText, Hash, Heading, Image as ImageIcon, ImagePlus,
   Loader2, MessageSquare, Minimize2, Paintbrush, PenLine, Plus, Send, Sparkles, Wand2,
 } from 'lucide-react'
+import { DotmSquare3 } from '@/components/ui/dotm-square-3'
 import type { ArticleRecord } from '@/lib/db'
 import {
   requestAiImage,
@@ -552,6 +553,13 @@ function ChatBox({
         >
           {loading ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
         </button>
+      </div>
+      {loading && (
+        <div className="mt-3 flex items-center justify-center gap-2">
+          <DotmSquare3 width={28} height={28} />
+          <span className="text-xs text-gray-400">AI 正在思考...</span>
+        </div>
+      )}
       </div>
     </section>
   )
