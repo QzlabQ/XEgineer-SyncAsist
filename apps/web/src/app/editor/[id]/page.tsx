@@ -71,7 +71,7 @@ export default function EditorPage() {
   if (!current) {
     return (
       <div className="h-screen flex flex-col items-center justify-center gap-4 bg-gray-50">
-        <DotmSquare3 width={64} height={64} className="text-[var(--accent)]" />
+        <DotmSquare3 size={64} className="text-[var(--accent)]" />
         <p className="text-sm text-gray-400">加载文章中...</p>
       </div>
     )
@@ -119,7 +119,7 @@ export default function EditorPage() {
           </div>
 
           {/* Editor */}
-          <div className="flex-1 overflow-hidden">
+          <div className="flex-1 overflow-hidden overflow-x-hidden">
             <RichEditor
               content={current.tiptapJSON}
               onChange={handleContentChange}

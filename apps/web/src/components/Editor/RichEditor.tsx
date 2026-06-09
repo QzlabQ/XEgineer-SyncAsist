@@ -174,13 +174,6 @@ export function RichEditor({ content, onChange, editable = true, onEditorReady, 
         files.forEach(file => insertImageFile(view, file, pos))
         return true
       },
-      handleDOMEvents: {
-        blur: () => {
-          setSlashMenu(null)
-          setSelectionToolbar(null)
-          return false
-        },
-      },
     },
     onUpdate({ editor }) {
       onChange(JSON.stringify(editor.getJSON()))

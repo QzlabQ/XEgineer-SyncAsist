@@ -557,7 +557,7 @@ function ChatBox({
       </div>
       {loading && (
         <div className="mt-3 flex items-center justify-center gap-2">
-          <DotmSquare3 width={28} height={28} />
+          <DotmSquare3 size={28} />
           <span className="text-xs text-gray-400">AI 正在思考...</span>
         </div>
       )}
