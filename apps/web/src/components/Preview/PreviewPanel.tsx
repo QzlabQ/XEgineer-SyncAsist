@@ -32,13 +32,33 @@ export function PreviewPanel({ title, tiptapJSON }: PreviewPanelProps) {
     if (!tiptapJSON) return ''
     try {
       const doc = JSON.parse(tiptapJSON)
-      const ast = tiptapToAST(doc, title)
-      if (activePlatform === 'weixin-h5') {
-        return renderToH5HTML(ast)
+
+      // Extract HtmlBlock raw HTML nodes
+      const htmlBlocks = extractHtmlBlocks(doc.content || [])
+      const hasHtmlBlocks = htmlBlocks.length > 0
+
+      // If content is entirely HtmlBlock, render raw HTML directly
+      if (hasHtmlBlocks && isAllHtmlBlocks(doc.content || [])) {
+        return htmlBlocks.join('\n')
       }
-      const renderer = getRenderer(activePlatform)
-      if (!renderer) return '<p>暂无预览</p>'
-      return renderer.renderPreview(ast)
+
+      const ast = tiptapToAST(doc, title)
+
+      // For standard platform previews with mixed content
+      let html = ''
+      if (activePlatform === 'weixin-h5') {
+        html = renderToH5HTML(ast)
+      } else {
+        const renderer = getRenderer(activePlatform)
+        html = renderer ? renderer.renderPreview(ast) : '<p>暂无预览</p>'
+      }
+
+      // Append HtmlBlock raw HTML after the AST-rendered preview
+      if (hasHtmlBlocks) {
+        html += '<hr style="margin:24px 0;border:1px dashed #e2e5e9" /><div style="padding:8px 0">' + htmlBlocks.join('\n') + '</div>'
+      }
+
+      return html
     } catch {
       return '<p>预览生成失败</p>'
     }
@@ -102,12 +122,39 @@ export function PreviewPanel({ title, tiptapJSON }: PreviewPanelProps) {
       </div>
 
       {/* Preview content */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden">
         <div
-          className="preview-content"
+          className="preview-content max-w-full overflow-x-hidden"
+          style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}
           dangerouslySetInnerHTML={{ __html: previewHTML }}
         />
       </div>
     </div>
   )
 }
+
+// Helper: extract raw HTML from HtmlBlock nodes in Tiptap JSON
+interface TiptapContentNode {
+  type?: string
+  attrs?: { html?: string }
+  content?: TiptapContentNode[]
+}
+
+function extractHtmlBlocks(content: TiptapContentNode[]): string[] {
+  const result: string[] = []
+  for (const node of content) {
+    if (node.type === "htmlBlock" && node.attrs?.html) {
+      result.push(node.attrs.html)
+    }
+    if (node.content) {
+      result.push(...extractHtmlBlocks(node.content))
+    }
+  }
+  return result
+}
+
+function isAllHtmlBlocks(content: TiptapContentNode[]): boolean {
+  if (!content.length) return false
+  return content.every(n => n.type === "htmlBlock")
+}
+

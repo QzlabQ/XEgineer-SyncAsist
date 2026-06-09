@@ -78,7 +78,7 @@ export default function EditorPage() {
   }
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden">
+    <div className="h-screen flex flex-col overflow-hidden max-w-full">
       <TopNav />
 
       <div className="flex-1 flex overflow-hidden">

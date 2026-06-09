@@ -309,7 +309,7 @@ export function RichEditor({ content, onChange, editable = true, onEditorReady, 
   if (!editor) return null
 
   return (
-    <div className="flex flex-col h-full" onKeyDownCapture={handleEditorKeyDown} onPasteCapture={(e) => {
+    <div className="flex flex-col h-full overflow-x-hidden" onKeyDownCapture={handleEditorKeyDown} onPasteCapture={(e) => {
       const html = e.clipboardData.getData('text/html')
       if (!html || !editor) return
       console.log('[Paste Capture] html长度:', html.length, 'shouldBlock:', shouldPasteAsHtmlBlock(html))
