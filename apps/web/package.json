@@ -52,6 +52,7 @@
     "bcryptjs": "^3.0.3",
     "dexie": "^4.0.10",
     "dexie-react-hooks": "^1.1.7",
+    "dotenv": "^17.4.2",
     "jose": "^6.2.3",
     "lucide-react": "^0.469.0",
     "next": "^15.1.3",
