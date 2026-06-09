@@ -166,7 +166,7 @@ export default function ArticlesPage() {
                         {syncStatusText(article.syncStatus)}
                       </span>
                       {article.permissionRole && (
-                        <span className="ml-2 text-blue-500">{roleText(article.permissionRole)}</span>
+                        <span className="ml-2 text-[var(--accent)]">{roleText(article.permissionRole)}</span>
                       )}
                       {article.teamName && (
                         <span className="ml-2 text-gray-400">{article.teamName}</span>

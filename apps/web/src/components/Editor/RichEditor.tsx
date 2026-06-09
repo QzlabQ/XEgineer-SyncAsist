@@ -341,7 +341,7 @@ export function RichEditor({ content, onChange, editable = true, onEditorReady, 
                 event.preventDefault()
                 applySlashCommand(command)
               }}
-              className={`w-full text-left px-3 py-2 ${index === slashIndex ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
+              className={`w-full text-left px-3 py-2 ${index === slashIndex ? 'bg-[var(--accent-soft)]' : 'hover:bg-gray-50'}`}
             >
               <span className="block text-sm text-gray-900">{command.title}</span>
               <span className="block text-xs text-gray-400">{command.hint}</span>

@@ -19,7 +19,7 @@ import type { TextSelectionSnapshot } from '@/lib/tiptap-text'
 // Tiptap must be client-only
 const RichEditor = dynamic(() => import('@/components/Editor/RichEditor').then(m => ({ default: m.RichEditor })), {
   ssr: false,
-  loading: () => <div className="flex-1 flex flex-col items-center justify-center gap-3 text-gray-400"><Loader2 size={24} className="animate-spin text-blue-500" /><span className="text-sm">加载编辑器...</span></div>,
+  loading: () => <div className="flex-1 flex flex-col items-center justify-center gap-3 text-gray-400"><Loader2 size={24} className="animate-spin text-[var(--accent)]" /><span className="text-sm">加载编辑器...</span></div>,
 })
 
 export default function EditorPage() {
@@ -71,7 +71,7 @@ export default function EditorPage() {
   if (!current) {
     return (
       <div className="h-screen flex flex-col items-center justify-center gap-4 bg-gray-50">
-        <DotmSquare3 width={64} height={64} className="text-blue-600" />
+        <DotmSquare3 width={64} height={64} className="text-[var(--accent)]" />
         <p className="text-sm text-gray-400">加载文章中...</p>
       </div>
     )
@@ -101,7 +101,7 @@ export default function EditorPage() {
                 <button
                   type="button"
                   onClick={() => setShowCollaboration(true)}
-                  className="mt-1 inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-600 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                  className="mt-1 inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-600 hover:border-[var(--accent)]/30 hover:bg-[var(--accent-soft)] hover:text-[var(--accent-text)]"
                   title="协作与权限"
                 >
                   <Users size={15} />

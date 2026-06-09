@@ -67,7 +67,7 @@ function AuthInput({ label, type, value, onChange, required = true }: { label: s
         type={type}
         value={value}
         onChange={event => onChange(event.target.value)}
-        className="mt-1 w-full rounded-md border border-[var(--border-default)] px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+        className="mt-1 w-full rounded-md border border-[var(--border-default)] px-3 py-2 text-sm focus:outline-none focus:border-[var(--accent)]"
         required={required}
         minLength={type === 'password' ? 8 : undefined}
       />

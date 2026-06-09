@@ -263,7 +263,7 @@ function ConfigField({
                 key={`${index}-${src.length}-${src.slice(0, 24)}`}
                 type="button"
                 onClick={() => setImageValue(src)}
-                className={`w-8 h-8 rounded border overflow-hidden ${imageValue === src ? 'border-blue-500 ring-1 ring-blue-500' : 'border-gray-200'}`}
+                className={`w-8 h-8 rounded border overflow-hidden ${imageValue === src ? 'border-[var(--accent)] ring-1 ring-[var(--accent)]' : 'border-gray-200'}`}
                 title="使用正文图片"
               >
                 <img src={src} alt="" className="w-full h-full object-cover" />
@@ -283,7 +283,7 @@ function ConfigField({
         placeholder={field.placeholder}
         value={typeof value === 'string' ? value : ''}
         onChange={e => onChange({ [field.key]: e.target.value })}
-        className="block w-full min-w-0 text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:border-blue-400"
+        className="block w-full min-w-0 text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:border-[var(--accent)]"
       />
     </div>
   )

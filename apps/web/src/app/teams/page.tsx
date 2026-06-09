@@ -103,7 +103,7 @@ export default function TeamsPage() {
               value={teamName}
               onChange={event => setTeamName(event.target.value)}
               placeholder="新团队"
-              className="min-w-0 flex-1 rounded-md border border-[var(--border-default)] bg-[var(--bg-surface)] px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+              className="min-w-0 flex-1 rounded-md border border-[var(--border-default)] bg-[var(--bg-surface)] px-3 py-2 text-sm focus:outline-none focus:border-[var(--accent)]"
             />
             <button type="submit" className="inline-flex w-10 items-center justify-center rounded-md bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)]" title="创建团队">
               <Plus size={16} />
@@ -128,7 +128,7 @@ export default function TeamsPage() {
                 type="button"
                 onClick={() => setSelectedId(team.id)}
                 className={`w-full rounded-md border px-4 py-3 text-left transition-colors ${
-                  selected?.id === team.id ? 'border-blue-300 bg-blue-50' : 'border-[var(--border-default)] bg-[var(--bg-surface)] hover:border-blue-200'
+                  selected?.id === team.id ? 'border-[var(--accent)]/40 bg-[var(--accent-soft)]' : 'border-[var(--border-default)] bg-[var(--bg-surface)] hover:border-[var(--accent)]/30'
                 }`}
               >
                 <div className="flex items-center justify-between gap-2">

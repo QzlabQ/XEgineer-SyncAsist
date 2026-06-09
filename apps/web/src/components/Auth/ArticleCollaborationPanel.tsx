@@ -145,7 +145,7 @@ export function ArticleCollaborationPanel({ article, open, onClose }: ArticleCol
       >
         <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-5 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2 min-w-0">
-            <Users size={18} className="text-blue-600" />
+            <Users size={18} className="text-[var(--accent)]" />
             <div>
               <h2 className="font-semibold text-gray-900">协作与权限</h2>
               <p className="text-xs text-gray-400 truncate">Owner: {ownerName || article.ownerName || '当前用户'}</p>
@@ -208,7 +208,7 @@ export function ArticleCollaborationPanel({ article, open, onClose }: ArticleCol
                   value={email}
                   onChange={event => setEmail(event.target.value)}
                   placeholder="邮箱"
-                  className="min-w-0 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+                  className="min-w-0 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:border-[var(--accent)]"
                 />
                 <select
                   value={collaboratorRole}
@@ -218,7 +218,7 @@ export function ArticleCollaborationPanel({ article, open, onClose }: ArticleCol
                   <option value="EDITOR">Editor</option>
                   <option value="VIEWER">Viewer</option>
                 </select>
-                <button type="submit" className="rounded-lg bg-blue-600 text-sm text-white hover:bg-blue-700">添加</button>
+                <button type="submit" className="rounded-lg bg-[var(--accent)] text-sm text-white hover:bg-[var(--accent-hover)]">添加</button>
               </form>
             )}
 
@@ -281,10 +281,10 @@ export function ArticleCollaborationPanel({ article, open, onClose }: ArticleCol
                   max="365"
                   value={expiresInDays}
                   onChange={event => setExpiresInDays(event.target.value)}
-                  className="min-w-0 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+                  className="min-w-0 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:border-[var(--accent)]"
                   title="有效天数"
                 />
-                <button type="button" onClick={() => void handleCreateLink()} className="rounded-lg bg-blue-600 text-sm text-white hover:bg-blue-700">
+                <button type="button" onClick={() => void handleCreateLink()} className="rounded-lg bg-[var(--accent)] text-sm text-white hover:bg-[var(--accent-hover)]">
                   创建
                 </button>
               </div>
@@ -306,7 +306,7 @@ export function ArticleCollaborationPanel({ article, open, onClose }: ArticleCol
                       </div>
                     </div>
                     {link.url && (
-                      <button type="button" onClick={() => void copyText(link.url!)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg" title="复制">
+                      <button type="button" onClick={() => void copyText(link.url!)} className="p-1.5 text-gray-400 hover:text-[var(--accent)] hover:bg-[var(--accent-soft)] rounded-lg" title="复制">
                         <Copy size={14} />
                       </button>
                     )}
@@ -339,7 +339,7 @@ function roleLabel(role: CollaborationRole): string {
 }
 
 function rolePill(role: CollaborationRole): string {
-  if (role === 'OWNER') return 'bg-blue-50 text-blue-700'
+  if (role === 'OWNER') return 'bg-[var(--accent-soft)] text-[var(--accent-text)]'
   if (role === 'EDITOR') return 'bg-emerald-50 text-emerald-700'
   return 'bg-gray-100 text-gray-600'
 }

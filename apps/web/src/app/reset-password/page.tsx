@@ -54,7 +54,7 @@ function ResetPasswordForm() {
               value={password}
               onChange={event => setPassword(event.target.value)}
               minLength={8}
-              className="w-full rounded-md border border-[var(--border-default)] px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+              className="w-full rounded-md border border-[var(--border-default)] px-3 py-2 text-sm focus:outline-none focus:border-[var(--accent)]"
               required
             />
             {error && <p className="text-sm text-red-500">{error}</p>}

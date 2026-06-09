@@ -54,7 +54,7 @@ export function AccountMenu() {
         <button
           type="button"
           onClick={() => setDebugOpen(open => !open)}
-          className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+          className="p-1.5 text-gray-400 hover:text-[var(--accent)] hover:bg-[var(--accent-soft)] rounded-lg transition-colors"
           title="查看同步调试信息"
         >
           <Info size={14} />
@@ -64,7 +64,7 @@ export function AccountMenu() {
         type="button"
         onClick={() => void syncWithCloud()}
         disabled={syncStatus === 'syncing'}
-        className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg disabled:opacity-50 transition-colors"
+        className="p-1.5 text-gray-400 hover:text-[var(--accent)] hover:bg-[var(--accent-soft)] rounded-lg disabled:opacity-50 transition-colors"
         title="重新同步"
       >
         <RefreshCw size={14} />

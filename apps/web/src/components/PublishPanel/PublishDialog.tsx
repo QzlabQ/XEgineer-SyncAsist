@@ -126,12 +126,12 @@ export function PublishDialog() {
                     )}
                   </div>
                   <div className="flex items-center gap-2">
-                    {p.publishStatus === 'pending' && <Loader2 size={16} className="animate-spin text-blue-500" />}
+                    {p.publishStatus === 'pending' && <Loader2 size={16} className="animate-spin text-[var(--accent)]" />}
                     {p.publishStatus === 'success' && (
                       <div className="flex items-center gap-1">
                         <CheckCircle size={16} className="text-green-500" />
                         {p.publishUrl && (
-                          <a href={p.publishUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 hover:underline flex items-center gap-0.5">
+                          <a href={p.publishUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-[var(--accent)] hover:underline flex items-center gap-0.5">
                             查看 <ExternalLink size={11} />
                           </a>
                         )}
@@ -152,7 +152,7 @@ export function PublishDialog() {
                           type="button"
                           onClick={() => handleRetry(p.id)}
                           disabled={isPublishing}
-                          className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded disabled:opacity-40"
+                          className="p-1 text-gray-400 hover:text-[var(--accent)] hover:bg-[var(--accent-soft)] rounded disabled:opacity-40"
                           title="重试发布"
                         >
                           <RotateCcw size={12} />
@@ -170,7 +170,7 @@ export function PublishDialog() {
 
           {!hasResults && (
             <div className="mt-4 space-y-3">
-              <div className="p-3 bg-blue-50 rounded-lg">
+              <div className="p-3 bg-[var(--accent-soft)] rounded-lg">
                 <p className="text-xs text-[var(--accent-text)]">立即发布会先保存为草稿；定时发布会先创建平台草稿，到点再尝试发布这份草稿</p>
               </div>
 
@@ -189,7 +189,7 @@ export function PublishDialog() {
                       setScheduleError('')
                       setScheduleMessage('')
                     }}
-                    className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:border-blue-400"
+                    className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:border-[var(--accent)]"
                   />
                   {scheduleMessage && <p className="text-xs text-green-600 mt-2">{scheduleMessage}</p>}
                   {scheduleError && <p className="text-xs text-red-500 mt-2">{scheduleError}</p>}
@@ -211,7 +211,7 @@ export function PublishDialog() {
               <button
                 onClick={handleSchedule}
                 disabled={scheduling || isPublishing || !scheduledAtValue}
-                className="px-4 py-2 text-sm text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                className="px-4 py-2 text-sm text-[var(--accent-text)] bg-[var(--accent-soft)] rounded-lg hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
               >
                 {scheduling ? <Loader2 size={14} className="animate-spin" /> : <CalendarClock size={14} />}
                 创建草稿并定时

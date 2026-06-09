@@ -56,7 +56,7 @@ export default function SharePage() {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-6 py-10">
       <div className="w-full max-w-md rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
         <div className="mb-5 flex items-center gap-3">
-          <div className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+          <div className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--accent-soft)] text-[var(--accent)]">
             <Share2 size={20} />
           </div>
           <div>
@@ -79,7 +79,7 @@ export default function SharePage() {
             </div>
             <div className="flex items-center justify-between rounded-lg bg-gray-50 px-4 py-3 text-sm">
               <span className="text-gray-500">邀请权限</span>
-              <span className="font-medium text-blue-700">{preview.role}</span>
+              <span className="font-medium text-[var(--accent-text)]">{preview.role}</span>
             </div>
             {preview.expiresAt && (
               <div className="text-xs text-gray-400">
@@ -104,7 +104,7 @@ export default function SharePage() {
             <button
               type="button"
               onClick={() => router.push(`/login?next=/share/${token}`)}
-              className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm text-white hover:bg-blue-700"
+              className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-[var(--accent)] px-4 py-2.5 text-sm text-white hover:bg-[var(--accent-hover)]"
             >
               <LogIn size={15} />
               登录后接受
@@ -114,7 +114,7 @@ export default function SharePage() {
               type="button"
               onClick={() => void handleAccept()}
               disabled={!preview || accepting}
-              className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
+              className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-[var(--accent)] px-4 py-2.5 text-sm text-white hover:bg-[var(--accent-hover)] disabled:opacity-50"
             >
               {accepting ? <Loader2 size={15} className="animate-spin" /> : <ArrowRight size={15} />}
               接受并打开

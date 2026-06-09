@@ -210,7 +210,7 @@ export default function HistoryPage() {
                       href={item.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 flex-shrink-0"
+                      className="flex items-center gap-1 text-xs text-[var(--accent)] hover:text-[var(--accent-text)] flex-shrink-0"
                     >
                       {item.isDraft ? '查看草稿' : '查看'}
                       <ExternalLink size={12} />
@@ -281,7 +281,7 @@ function ScheduledPublishCard({
               href={result.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700"
+              className="flex items-center gap-1 text-xs text-[var(--accent)] hover:text-[var(--accent-text)]"
             >
               {links.length > 1 ? `${result.platformName} ` : ''}{result.isDraft ? '查看草稿' : '查看'}
               <ExternalLink size={12} />
@@ -304,7 +304,7 @@ function ScheduledPublishCard({
               type="button"
               onClick={onRetry}
               disabled={retrying}
-              className="text-xs text-gray-500 hover:text-blue-600 disabled:opacity-40"
+              className="text-xs text-gray-500 hover:text-[var(--accent)] disabled:opacity-40"
             >
               {retrying ? '重试中...' : '重试'}
             </button>
@@ -361,7 +361,7 @@ function scheduleBadgeClass(status: ScheduledPublishRecord['status']): string {
   switch (status) {
     case 'scheduled':
     case 'draft_ready':
-      return `${base} bg-blue-50 text-blue-600`
+      return `${base} bg-[var(--accent-soft)] text-[var(--accent)]`
     case 'running':
     case 'publishing':
       return `${base} bg-amber-50 text-amber-600`
@@ -386,7 +386,7 @@ function scheduleIconClass(status: ScheduledPublishRecord['status']): string {
     case 'running':
       return 'text-amber-500 flex-shrink-0'
     default:
-      return 'text-blue-500 flex-shrink-0'
+      return 'text-[var(--accent)] flex-shrink-0'
   }
 }
 

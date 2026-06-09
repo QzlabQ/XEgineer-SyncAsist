@@ -90,7 +90,7 @@ export default function SettingsPage() {
             <button
               onClick={handleCheckAll}
               disabled={checking}
-              className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 disabled:opacity-50"
+              className="flex items-center gap-1.5 text-xs text-[var(--accent)] hover:text-[var(--accent-text)] disabled:opacity-50"
             >
               <RefreshCw size={13} className={checking ? 'animate-spin' : ''} />
               全部刷新
