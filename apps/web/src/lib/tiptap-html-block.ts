@@ -49,17 +49,17 @@ export const HtmlBlock = Node.create({
     return ({ node }) => {
       const dom = document.createElement('div')
       dom.setAttribute('data-html-block', '')
-      dom.style.cssText = 'position: relative; margin: 16px 0; border: 1px dashed #e2e5e9; border-radius: 8px; overflow: hidden;'
+      dom.style.cssText = 'position: relative; margin: 24px 0; background: #ffffff; border: 1px solid #e2e5e9; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.04);'
 
-      const label = document.createElement('div')
-      label.style.cssText = 'position: absolute; top: 4px; right: 8px; z-index: 1; font-size: 11px; color: #9ca3af; background: rgba(255,255,255,0.85); padding: 2px 6px; border-radius: 4px; pointer-events: none;'
-      label.textContent = 'H5 渲染块'
+      const toolbar = document.createElement('div')
+      toolbar.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: #f8f9fa; border-bottom: 1px solid #eef0f2;'
+      toolbar.innerHTML = '<span style="font-size:12px;color:#6b7280;font-weight:500;">📄 渲染块</span><span style="font-size:11px;color:#9ca3af;">内容已内联渲染 · 可拖拽移动</span>'
 
       const content = document.createElement('div')
-      content.style.cssText = 'padding: 16px;'
+      content.style.cssText = 'padding: 0;'
       content.innerHTML = node.attrs.html as string || ''
 
-      dom.appendChild(label)
+      dom.appendChild(toolbar)
       dom.appendChild(content)
       return { dom }
     }
@@ -80,13 +80,37 @@ export const HtmlBlock = Node.create({
 })
 
 /**
- * Parse pasted HTML and detect if it's H5 inline-styled content.
- * If so, insert as htmlBlock. Otherwise, let Tiptap handle it.
+ * Detect if pasted HTML is "rich" enough to warrant HtmlBlock rendering.
+ *
+ * Triggered when HTML has:
+ * - Any inline style="" attributes (WeChat H5, website copy)
+ * - Complex layout tags beyond basic formatting
+ * - Multiple paragraphs with styling
+ *
+ * Basic text formatting (bold/italic/links only) is still handled by Tiptap.
  */
 export function shouldPasteAsHtmlBlock(html: string): boolean {
   if (!html) return false
-  // Detect H5 content: has inline styles on block elements
-  const hasInlineStyles = /<(div|section|figure|p|h[1-6])\b[^>]*style="[^"]*(?:background|box-shadow|border-radius|linear-gradient|flex|grid|animation|max-width|padding|margin)[^"]*"/i.test(html)
-  const hasMultipleStyledBlocks = (html.match(/style="[^"]*"/g) || []).length >= 3
-  return hasInlineStyles && hasMultipleStyledBlocks
+
+  // Strip basic text-formatting tags and check if anything substantial remains
+  const richOnly = html
+    .replace(/<\/?(b|strong|i|em|u|s|a|span|br|code)\b[^>]*>/gi, '')
+    .replace(/<\/?(h[1-6]|p|li|ul|ol|blockquote|pre)\b[^>]*>/gi, '')
+    .trim()
+
+  // After removing basic formatting, check for:
+  // 1. Inline style attributes (the key signal)
+  const hasStyleAttr = /style="[^"]{10,}"/i.test(richOnly)
+
+  // 2. Complex HTML tags (div, section, figure, table, header, footer, nav, article, main, aside)
+  const hasComplexTags = /<\/?(div|section|figure|table|header|footer|nav|article|main|aside|form|svg|canvas|video|audio)\b/i.test(richOnly)
+
+  // 3. Class attributes (website CSS carries visual meaning)
+  const hasClassAttr = /\bclass="[^"]{4,}"/i.test(richOnly)
+
+  // 4. Rich HTML with multiple style occurrences
+  const styleCount = (html.match(/\bstyle="[^"]*"/g) || []).length
+  const styleCountOnBlocks = (html.match(/<(div|section|figure|table|p|h[1-6])\b[^>]*style="[^"]*"/gi) || []).length
+
+  return hasStyleAttr || hasComplexTags || hasClassAttr || styleCount >= 2 || styleCountOnBlocks >= 1
 }
