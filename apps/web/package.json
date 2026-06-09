@@ -11,7 +11,7 @@
     "prisma:migrate": "prisma migrate dev"
   },
   "dependencies": {
-    "@prisma/client": "5.22.0",
+    "@prisma/client": "^7.8.0",
     "@tiptap/core": "^2.11.5",
     "@tiptap/extension-bold": "^2.11.5",
     "@tiptap/extension-bubble-menu": "^2.11.5",
@@ -62,13 +62,14 @@
     "zustand": "^5.0.3"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^3.0.0",
     "@types/node": "^22.10.5",
     "@types/nodemailer": "^8.0.0",
     "@types/react": "^19.0.3",
     "@types/react-dom": "^19.0.2",
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.49",
-    "prisma": "5.22.0",
+    "prisma": "^7.8.0",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.7.2"
   }
