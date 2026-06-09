@@ -41,15 +41,19 @@ interface PushResponse {
   historyMappings: Array<{ localId?: number; remoteId: string }>
 }
 
-export async function syncLocalToCloud(report?: SyncDebugReporter): Promise<void> {
-  const [articles, platformConfigs, publishHistory] = await Promise.all([
+export async function syncLocalToCloud(report?: SyncDebugReporter, cacheOwnerId?: string): Promise<void> {
+  const [allArticles, allPlatformConfigs, allPublishHistory] = await Promise.all([
     db.articles.toArray(),
     db.platformConfigs.toArray(),
     db.publishHistory.toArray(),
   ])
+  const articles = allArticles.filter(article => isVisibleForSync(article, cacheOwnerId))
+  const visibleArticleIds = new Set(articles.map(article => article.id).filter((id): id is number => typeof id === 'number'))
+  const platformConfigs = allPlatformConfigs.filter(row => visibleArticleIds.has(row.articleId))
+  const publishHistory = allPublishHistory.filter(row => visibleArticleIds.has(row.articleId) || row.cacheOwnerId === cacheOwnerId)
 
   const articlePayload = articles
-    .filter(article => !article.remoteId || article.syncStatus === 'dirty' || article.syncStatus === 'error')
+    .filter(article => canWriteLocalArticle(article) && (!article.remoteId || article.syncStatus === 'dirty' || article.syncStatus === 'error'))
     .map(toArticlePayload)
 
   const configPayload = platformConfigs.map(row => ({
@@ -143,7 +147,7 @@ export async function syncLocalToCloud(report?: SyncDebugReporter): Promise<void
         publishHistory: pushed.historyMappings.length,
       },
     })
-    await applyPushMappings(pushed)
+    await applyPushMappings(pushed, cacheOwnerId)
   }
 
   reportSync(report, {
@@ -177,7 +181,7 @@ export async function syncLocalToCloud(report?: SyncDebugReporter): Promise<void
       publishHistory: bootstrap.publishHistory.length,
     },
   })
-  await mergeBootstrap(bootstrap)
+  await mergeBootstrap(bootstrap, cacheOwnerId)
 
   reportSync(report, {
     phase: 'done',
@@ -191,7 +195,7 @@ export async function syncLocalToCloud(report?: SyncDebugReporter): Promise<void
   })
 }
 
-export async function syncArticleByLocalId(localId: number, report?: SyncDebugReporter): Promise<void> {
+export async function syncArticleByLocalId(localId: number, report?: SyncDebugReporter, cacheOwnerId?: string): Promise<void> {
   const article = await db.articles.get(localId)
   if (!article) {
     reportSync(report, {
@@ -233,6 +237,7 @@ export async function syncArticleByLocalId(localId: number, report?: SyncDebugRe
       syncStatus: 'synced',
       lastSyncedAt: Date.now(),
       syncError: undefined,
+      cacheOwnerId,
     })
     return
   }
@@ -262,34 +267,35 @@ export async function syncArticleByLocalId(localId: number, report?: SyncDebugRe
     throw error
   }
 
-  await applyPushMappings(pushed)
+  await applyPushMappings(pushed, cacheOwnerId)
 }
 
 export async function deleteRemoteArticle(remoteId: string): Promise<void> {
   await apiFetch<{ ok: true }>(`/api/articles/${remoteId}`, { method: 'DELETE' })
 }
 
-async function applyPushMappings(response: PushResponse): Promise<void> {
+async function applyPushMappings(response: PushResponse, cacheOwnerId?: string): Promise<void> {
   await Promise.all([
     ...response.articleMappings
       .filter(item => typeof item.localId === 'number')
       .map(item => db.articles.update(item.localId!, {
-        remoteId: item.remoteId,
-        updatedAt: item.updatedAt,
-        syncStatus: 'synced' as const,
-        lastSyncedAt: Date.now(),
-        syncError: undefined,
-      })),
+      remoteId: item.remoteId,
+      updatedAt: item.updatedAt,
+      syncStatus: 'synced' as const,
+      lastSyncedAt: Date.now(),
+      syncError: undefined,
+      cacheOwnerId,
+    })),
     ...response.configMappings
       .filter(item => typeof item.localId === 'number')
-      .map(item => db.platformConfigs.update(item.localId!, { remoteId: item.remoteId })),
+      .map(item => db.platformConfigs.update(item.localId!, { remoteId: item.remoteId, cacheOwnerId })),
     ...response.historyMappings
       .filter(item => typeof item.localId === 'number')
-      .map(item => db.publishHistory.update(item.localId!, { remoteId: item.remoteId })),
+      .map(item => db.publishHistory.update(item.localId!, { remoteId: item.remoteId, cacheOwnerId })),
   ])
 }
 
-async function mergeBootstrap(data: BootstrapResponse): Promise<void> {
+async function mergeBootstrap(data: BootstrapResponse, cacheOwnerId?: string): Promise<void> {
   const localArticles = await db.articles.toArray()
 
   for (const remote of data.articles) {
@@ -304,6 +310,12 @@ async function mergeBootstrap(data: BootstrapResponse): Promise<void> {
       categories: remote.categories ?? [],
       createdAt: remote.createdAt,
       updatedAt: remote.updatedAt,
+      ownerId: remote.ownerId,
+      ownerName: remote.ownerName,
+      teamId: remote.teamId ?? undefined,
+      teamName: remote.teamName ?? undefined,
+      permissionRole: remote.permissionRole,
+      cacheOwnerId,
       syncStatus: 'synced' as const,
       lastSyncedAt: Date.now(),
       syncError: undefined,
@@ -332,6 +344,7 @@ async function mergeBootstrap(data: BootstrapResponse): Promise<void> {
       platform: remote.platform,
       config: JSON.stringify(remote.config ?? {}),
       updatedAt: remote.updatedAt,
+      cacheOwnerId,
     }
 
     if (existing?.id) await db.platformConfigs.update(existing.id, record)
@@ -347,6 +360,7 @@ async function mergeBootstrap(data: BootstrapResponse): Promise<void> {
 
     await db.publishHistory.add({
       remoteId: remote.remoteId,
+      cacheOwnerId,
       articleId: article?.id ?? 0,
       platform: remote.platform,
       platformName: remote.platformName,
@@ -374,6 +388,21 @@ function toArticlePayload(article: ArticleRecord) {
     createdAt: article.createdAt,
     updatedAt: article.updatedAt,
   }
+}
+
+function canWriteLocalArticle(article: ArticleRecord): boolean {
+  return article.permissionRole !== 'VIEWER'
+}
+
+function isVisibleForSync(article: ArticleRecord, cacheOwnerId: string | undefined): boolean {
+  if (!cacheOwnerId) return article.cacheOwnerId === 'guest' || isLegacyGuestDraft(article)
+  return article.cacheOwnerId === cacheOwnerId ||
+    (!article.cacheOwnerId && article.ownerId === cacheOwnerId) ||
+    isLegacyGuestDraft(article)
+}
+
+function isLegacyGuestDraft(article: ArticleRecord): boolean {
+  return !article.cacheOwnerId && !article.remoteId && !article.ownerId && !article.permissionRole
 }
 
 function parseConfig(config: string): unknown {

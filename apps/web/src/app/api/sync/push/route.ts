@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { getAuthUser } from '@/lib/server/auth'
 import { prisma } from '@/lib/server/prisma'
 import { jsonError, unauthorized } from '@/lib/server/responses'
+import { requireArticleRole } from '@/lib/server/permissions'
 
 const numberLike = z.preprocess(value => {
   if (value === null || value === undefined || value === '') return undefined
@@ -130,6 +131,7 @@ export async function POST(request: NextRequest) {
 
   for (const article of parsed.data.articles ?? []) {
     const record = await upsertArticle(user.id, article)
+    if (!record) return jsonError('无权编辑共享文章，请确认当前账号权限', 403)
     if (typeof article.localId === 'number') localToRemote.set(article.localId, record.id)
     articleMappings.push({
       localId: article.localId ?? undefined,
@@ -151,21 +153,18 @@ export async function POST(request: NextRequest) {
       continue
     }
 
-    const article = await prisma.article.findFirst({
-      where: { id: articleRemoteId, userId: user.id },
-      select: { id: true },
-    })
-    if (!article) continue
+    const access = await requireArticleRole(user.id, articleRemoteId, 'EDITOR')
+    if (!access) continue
 
     const record = await prisma.platformConfig.upsert({
-      where: { articleId_platform: { articleId: article.id, platform: config.platform } },
+      where: { articleId_platform: { articleId: access.article.id, platform: config.platform } },
       update: {
         config: toPrismaJson(config.config),
         userId: user.id,
       },
       create: {
         userId: user.id,
-        articleId: article.id,
+        articleId: access.article.id,
         platform: config.platform,
         config: toPrismaJson(config.config),
       },
@@ -175,14 +174,13 @@ export async function POST(request: NextRequest) {
 
   for (const item of parsed.data.publishHistory ?? []) {
     const articleRemoteId = item.articleRemoteId || (typeof item.articleId === 'number' ? localToRemote.get(item.articleId) : undefined)
-    const article = articleRemoteId
-      ? await prisma.article.findFirst({ where: { id: articleRemoteId, userId: user.id }, select: { id: true } })
-      : null
+    const access = articleRemoteId ? await requireArticleRole(user.id, articleRemoteId, 'EDITOR') : null
+    if (articleRemoteId && !access) continue
     const platform = item.platform || 'unknown'
 
     const data = {
       userId: user.id,
-      articleId: article?.id ?? null,
+      articleId: access?.article.id ?? null,
       platform,
       platformName: item.platformName || platform,
       publishedAt: new Date(normalizeTimestamp(item.publishedAt)),
@@ -218,12 +216,12 @@ async function upsertArticle(userId: string, article: z.infer<typeof ArticleSche
   }
 
   const existing = article.remoteId
-    ? await prisma.article.findFirst({ where: { id: article.remoteId, userId } })
+    ? await requireArticleRole(userId, article.remoteId, 'EDITOR')
     : null
 
   if (existing) {
     return prisma.article.update({
-      where: { id: existing.id },
+      where: { id: existing.article.id },
       data: {
         title: data.title,
         tiptapJSON: data.tiptapJSON,

@@ -19,6 +19,7 @@ import Typography from '@tiptap/extension-typography'
 import { Bold, Italic, Underline as UnderlineIcon, Strikethrough, Code, Link2, Highlighter } from 'lucide-react'
 import type { EditorView } from '@tiptap/pm/view'
 import { EditorToolbar } from './EditorToolbar'
+import type { TextSelectionSnapshot } from '@/lib/tiptap-text'
 
 interface SlashState {
   query: string
@@ -100,9 +101,12 @@ const SLASH_COMMANDS: SlashCommand[] = [
 interface RichEditorProps {
   content: string
   onChange: (json: string) => void
+  editable?: boolean
+  onEditorReady?: (editor: Editor | null) => void
+  onSelectionChange?: (selection: TextSelectionSnapshot | null) => void
 }
 
-export function RichEditor({ content, onChange }: RichEditorProps) {
+export function RichEditor({ content, onChange, editable = true, onEditorReady, onSelectionChange }: RichEditorProps) {
   const [slashState, setSlashState] = useState<SlashState | null>(null)
   const [slashIndex, setSlashIndex] = useState(0)
   const [selectionToolbar, setSelectionToolbar] = useState<FloatingToolbarState | null>(null)
@@ -141,6 +145,7 @@ export function RichEditor({ content, onChange }: RichEditorProps) {
       Typography,
     ],
     content: content ? JSON.parse(content) : undefined,
+    editable,
     editorProps: {
       attributes: { class: 'tiptap-editor focus:outline-none' },
       handlePaste(view, event) {
@@ -175,9 +180,25 @@ export function RichEditor({ content, onChange }: RichEditorProps) {
     onSelectionUpdate({ editor }) {
       updateSlashMenu(editor, setSlashMenu)
       updateSelectionToolbar(editor, setSelectionToolbar)
+      onSelectionChange?.(getSelectionSnapshot(editor))
     },
     immediatelyRender: false,
   })
+
+  useEffect(() => {
+    if (!editor) return
+    editor.setEditable(editable)
+  }, [editable, editor])
+
+  useEffect(() => {
+    if (!editor) return
+    onEditorReady?.(editor)
+    onSelectionChange?.(getSelectionSnapshot(editor))
+    return () => {
+      onEditorReady?.(null)
+      onSelectionChange?.(null)
+    }
+  }, [editor, onEditorReady, onSelectionChange])
 
   const refreshOverlays = useCallback(() => {
     if (!editor || overlayFrameRef.current !== null) return
@@ -402,6 +423,15 @@ function updateSelectionToolbar(
     top,
     left: Math.max(12, Math.min(centeredLeft, window.innerWidth - menuWidth - 12)),
   })
+}
+
+function getSelectionSnapshot(editor: Editor): TextSelectionSnapshot | null {
+  const { from, to, empty } = editor.state.selection
+  if (empty) return null
+
+  const text = editor.state.doc.textBetween(from, to, '\n', '\n').trim()
+  if (!text) return null
+  return { from, to, text }
 }
 
 function insertImageFile(view: EditorView, file: File, pos?: number) {

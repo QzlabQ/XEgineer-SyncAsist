@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { PenLine, List, Settings, Save, Loader2, Send, History } from 'lucide-react'
+import { PenLine, List, Settings, Save, Loader2, Send, History, Users } from 'lucide-react'
 import { useArticleStore } from '@/stores/article'
 import { usePublishStore } from '@/stores/publish'
 import { AccountMenu } from '@/components/Auth/AccountMenu'
@@ -12,6 +12,7 @@ export function TopNav() {
   const { current, saveStatus } = useArticleStore()
   const { platforms, setShowPublishDialog } = usePublishStore()
   const selectedCount = platforms.filter(p => p.selected).length
+  const canPublish = Boolean(current && current.permissionRole !== 'VIEWER')
 
   return (
     <header className="relative z-30 h-12 flex items-center justify-between px-4 border-b border-gray-200 bg-white flex-shrink-0">
@@ -42,6 +43,13 @@ export function TopNav() {
             <History size={14} />
             发布历史
           </button>
+          <button
+            onClick={() => router.push('/teams')}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <Users size={14} />
+            团队
+          </button>
         </nav>
       </div>
 
@@ -58,8 +66,9 @@ export function TopNav() {
         {/* Publish button */}
         <button
           onClick={() => setShowPublishDialog(true)}
-          disabled={!current}
+          disabled={!canPublish}
           className="flex items-center gap-1.5 px-4 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          title={current?.permissionRole === 'VIEWER' ? 'Viewer 不能发布共享文章' : '发布'}
         >
           <Send size={14} />
           发布{selectedCount > 0 ? ` (${selectedCount})` : ''}

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { AlertCircle, ArrowLeft, CalendarClock, CheckCircle, ExternalLink, History, XCircle } from 'lucide-react'
 import { db, type PublishRecord, type ScheduledPublishRecord } from '@/lib/db'
 import { getExtensionBridge, type ScheduledPublishJob } from '@/lib/extension-bridge'
+import { useAuthStore } from '@/stores/auth'
 
 interface HistoryItem extends PublishRecord {
   articleTitle: string
@@ -34,7 +35,16 @@ export default function HistoryPage() {
     const scheduled = await db.scheduledPublishes.orderBy('scheduledAt').toArray()
     setScheduledItems(scheduled.reverse())
 
-    const records = await db.publishHistory.orderBy('publishedAt').reverse().toArray()
+    const cacheOwnerId = useAuthStore.getState().user?.id ?? 'guest'
+    const allArticles = await db.articles.toArray()
+    const visibleArticleIds = new Set(
+      allArticles
+        .filter(article => isVisibleArticleForHistory(article, cacheOwnerId))
+        .map(article => article.id)
+        .filter((id): id is number => typeof id === 'number')
+    )
+    const records = (await db.publishHistory.orderBy('publishedAt').reverse().toArray())
+      .filter(record => visibleArticleIds.has(record.articleId) || record.cacheOwnerId === cacheOwnerId)
     const articleIds = Array.from(new Set(records.map(record => record.articleId)))
     const articles = await db.articles.bulkGet(articleIds)
     const titleMap = new Map<number, string>()
@@ -378,4 +388,16 @@ function scheduleIconClass(status: ScheduledPublishRecord['status']): string {
     default:
       return 'text-blue-500 flex-shrink-0'
   }
+}
+
+function isVisibleArticleForHistory(
+  article: { cacheOwnerId?: string; remoteId?: string; ownerId?: string; permissionRole?: string },
+  cacheOwnerId: string
+): boolean {
+  if (cacheOwnerId === 'guest') {
+    return article.cacheOwnerId === 'guest' || (!article.cacheOwnerId && !article.remoteId && !article.ownerId && !article.permissionRole)
+  }
+  return article.cacheOwnerId === cacheOwnerId ||
+    (!article.cacheOwnerId && article.ownerId === cacheOwnerId) ||
+    (!article.cacheOwnerId && !article.remoteId && !article.ownerId && !article.permissionRole)
 }

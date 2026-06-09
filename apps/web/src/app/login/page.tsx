@@ -1,14 +1,23 @@
 'use client'
 
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { FormEvent, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { FormEvent, Suspense, useState } from 'react'
 import { Loader2, LogIn } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth'
 import { useArticleStore } from '@/stores/article'
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={<AuthShell title="登录 XEgineer" subtitle="登录后自动同步本地文章到云端">加载中...</AuthShell>}>
+      <LoginForm />
+    </Suspense>
+  )
+}
+
+function LoginForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const login = useAuthStore(state => state.login)
   const syncWithCloud = useArticleStore(state => state.syncWithCloud)
   const [email, setEmail] = useState('')
@@ -23,7 +32,7 @@ export default function LoginPage() {
     try {
       await login(email, password)
       await syncWithCloud()
-      router.push('/articles')
+      router.push(searchParams.get('next') || '/articles')
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     } finally {

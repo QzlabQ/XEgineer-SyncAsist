@@ -19,6 +19,8 @@ interface ArticleStore {
   loadArticles(): Promise<void>
   loadArticle(id: number): Promise<void>
   createArticle(): Promise<number>
+  clearSessionCache(keepUserId?: string | null): Promise<void>
+  resetLocalState(): void
   updateTitle(title: string): void
   updateContent(json: string): void
   updateMeta(patch: Partial<Pick<ArticleRecord, 'cover' | 'summary' | 'tags' | 'categories'>>): void
@@ -39,13 +41,19 @@ export const useArticleStore = create<ArticleStore>((set, get) => ({
   syncDebug: null,
 
   async loadArticles() {
-    const articles = await db.articles.orderBy('updatedAt').reverse().toArray()
+    const cacheOwnerId = currentCacheOwnerId()
+    const rows = await db.articles.orderBy('updatedAt').reverse().toArray()
+    const articles = rows.filter(article => isVisibleArticle(article, cacheOwnerId))
     set({ articles })
   },
 
   async loadArticle(id) {
     const article = await db.articles.get(id)
-    if (article) set({ currentId: id, current: article })
+    if (article && isVisibleArticle(article, currentCacheOwnerId())) {
+      set({ currentId: id, current: article })
+    } else {
+      set({ currentId: null, current: null })
+    }
   },
 
   async createArticle() {
@@ -58,6 +66,8 @@ export const useArticleStore = create<ArticleStore>((set, get) => ({
       createdAt: now,
       updatedAt: now,
       syncStatus: isCloudEnabled() ? 'dirty' : 'local',
+      permissionRole: isCloudEnabled() ? 'OWNER' : undefined,
+      cacheOwnerId: currentCacheOwnerId() ?? 'guest',
     })
     if (isCloudEnabled()) {
       await syncLocalArticle(id as number, set, get)
@@ -65,6 +75,70 @@ export const useArticleStore = create<ArticleStore>((set, get) => ({
     await get().loadArticles()
     await get().loadArticle(id as number)
     return id as number
+  },
+
+  async clearSessionCache(keepUserId = null) {
+    if (saveTimer) {
+      clearTimeout(saveTimer)
+      saveTimer = null
+    }
+
+    const articles = await db.articles.toArray()
+    const removeArticleIds = articles
+      .filter(article => shouldRemoveForAuthBoundary(article, keepUserId))
+      .map(article => article.id)
+      .filter((id): id is number => typeof id === 'number')
+
+    await db.transaction('rw', db.articles, db.platformConfigs, db.publishHistory, async () => {
+      if (removeArticleIds.length) {
+        await Promise.all(removeArticleIds.map(id => db.platformConfigs.where('articleId').equals(id).delete()))
+        await Promise.all(removeArticleIds.map(id => db.publishHistory.where('articleId').equals(id).delete()))
+        await db.articles.bulkDelete(removeArticleIds)
+      }
+
+      const [configs, history] = await Promise.all([
+        db.platformConfigs.toArray(),
+        db.publishHistory.toArray(),
+      ])
+      const removeConfigIds = configs
+        .filter(row => shouldRemoveOwnedCache(row.cacheOwnerId, keepUserId))
+        .map(row => row.id)
+        .filter((id): id is number => typeof id === 'number')
+      const removeHistoryIds = history
+        .filter(row => shouldRemoveOwnedCache(row.cacheOwnerId, keepUserId))
+        .map(row => row.id)
+        .filter((id): id is number => typeof id === 'number')
+
+      if (removeConfigIds.length) await db.platformConfigs.bulkDelete(removeConfigIds)
+      if (removeHistoryIds.length) await db.publishHistory.bulkDelete(removeHistoryIds)
+    })
+
+    set({
+      articles: [],
+      currentId: null,
+      current: null,
+      saveStatus: 'saved',
+      syncStatus: 'idle',
+      syncError: '',
+      syncDebug: null,
+    })
+    await get().loadArticles()
+  },
+
+  resetLocalState() {
+    if (saveTimer) {
+      clearTimeout(saveTimer)
+      saveTimer = null
+    }
+    set({
+      articles: [],
+      currentId: null,
+      current: null,
+      saveStatus: 'saved',
+      syncStatus: 'idle',
+      syncError: '',
+      syncDebug: null,
+    })
   },
 
   updateTitle(title) {
@@ -94,6 +168,11 @@ export const useArticleStore = create<ArticleStore>((set, get) => ({
   async saveNow() {
     const { current } = get()
     if (!current?.id) return
+    if (current.permissionRole === 'VIEWER') {
+      const message = 'Viewer 只能查看文章，不能保存修改'
+      set({ saveStatus: 'error', syncStatus: 'error', syncError: message })
+      return
+    }
     try {
       const updated: ArticleRecord = markDirty({ ...current, updatedAt: Date.now() })
       await db.articles.put(updated)
@@ -119,7 +198,9 @@ export const useArticleStore = create<ArticleStore>((set, get) => ({
   },
 
   async syncWithCloud() {
-    if (!isCloudEnabled()) return
+    const user = useAuthStore.getState().user
+    if (!user) return
+    const previousCurrentId = get().currentId
     set({
       syncStatus: 'syncing',
       syncError: '',
@@ -130,10 +211,10 @@ export const useArticleStore = create<ArticleStore>((set, get) => ({
       },
     })
     try {
-      await syncLocalToCloud(syncDebug => set({ syncDebug }))
+      await get().clearSessionCache(user.id)
+      await syncLocalToCloud(syncDebug => set({ syncDebug }), user.id)
       await get().loadArticles()
-      const { currentId } = get()
-      if (currentId) await get().loadArticle(currentId)
+      if (previousCurrentId) await get().loadArticle(previousCurrentId)
       set(state => ({
         syncStatus: 'idle',
         syncError: '',
@@ -182,10 +263,11 @@ function scheduleSave(get: () => ArticleStore) {
 }
 
 function markDirty(article: ArticleRecord): ArticleRecord {
+  if (article.permissionRole === 'VIEWER') return article
   if (!useAuthStore.getState().user) {
-    return { ...article, syncStatus: article.remoteId ? 'dirty' : 'local' }
+    return { ...article, syncStatus: article.remoteId ? 'dirty' : 'local', cacheOwnerId: article.cacheOwnerId ?? 'guest' }
   }
-  return { ...article, syncStatus: 'dirty', syncError: undefined }
+  return { ...article, syncStatus: 'dirty', syncError: undefined, cacheOwnerId: currentCacheOwnerId() ?? article.cacheOwnerId }
 }
 
 async function syncLocalArticle(
@@ -203,7 +285,7 @@ async function syncLocalArticle(
     },
   })
   try {
-    await syncArticleByLocalId(id, syncDebug => set({ syncDebug }))
+    await syncArticleByLocalId(id, syncDebug => set({ syncDebug }), currentCacheOwnerId() ?? undefined)
     set({ syncStatus: 'idle', syncError: '' })
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
@@ -229,4 +311,39 @@ async function syncLocalArticle(
 
 function isCloudEnabled(): boolean {
   return Boolean(useAuthStore.getState().user)
+}
+
+function currentCacheOwnerId(): string | null {
+  return useAuthStore.getState().user?.id ?? null
+}
+
+function isVisibleArticle(article: ArticleRecord, userId: string | null): boolean {
+  if (!userId) {
+    return article.cacheOwnerId === 'guest' || isLegacyGuestDraft(article)
+  }
+
+  return article.cacheOwnerId === userId ||
+    (!article.cacheOwnerId && article.ownerId === userId) ||
+    isLegacyGuestDraft(article)
+}
+
+function isLegacyGuestDraft(article: ArticleRecord): boolean {
+  return !article.cacheOwnerId && !article.remoteId && !article.ownerId && !article.permissionRole
+}
+
+function shouldRemoveForAuthBoundary(article: ArticleRecord, keepUserId: string | null): boolean {
+  if (isLegacyGuestDraft(article) || article.cacheOwnerId === 'guest') return false
+  if (!keepUserId) return isCloudBackedArticle(article)
+  if (article.cacheOwnerId === keepUserId) return false
+  if (!article.cacheOwnerId && article.ownerId === keepUserId) return false
+  return isCloudBackedArticle(article)
+}
+
+function shouldRemoveOwnedCache(cacheOwnerId: string | undefined, keepUserId: string | null): boolean {
+  if (!cacheOwnerId || cacheOwnerId === 'guest') return false
+  return !keepUserId || cacheOwnerId !== keepUserId
+}
+
+function isCloudBackedArticle(article: ArticleRecord): boolean {
+  return Boolean(article.remoteId || article.ownerId || article.permissionRole || (article.cacheOwnerId && article.cacheOwnerId !== 'guest'))
 }

@@ -7,17 +7,36 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum ArticleRole {
+  OWNER
+  EDITOR
+  VIEWER
+}
+
+enum TeamRole {
+  OWNER
+  EDITOR
+  VIEWER
+}
+
 model User {
-  id                  String               @id @default(cuid())
-  email               String               @unique
-  name                String?
-  passwordHash        String
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
-  articles            Article[]
-  refreshTokens       RefreshToken[]
-  passwordResetTokens PasswordResetToken[]
-  publishHistory      PublishHistory[]
+  id                            String                  @id @default(cuid())
+  email                         String                  @unique
+  name                          String?
+  passwordHash                  String
+  createdAt                     DateTime                @default(now())
+  updatedAt                     DateTime                @updatedAt
+  articles                      Article[]
+  refreshTokens                 RefreshToken[]
+  passwordResetTokens           PasswordResetToken[]
+  publishHistory                PublishHistory[]
+  createdTeams                  Team[]                  @relation("TeamCreator")
+  teamMemberships               TeamMember[]            @relation("TeamMemberUser")
+  invitedTeamMembers            TeamMember[]            @relation("TeamMemberInviter")
+  articleCollaborators          ArticleCollaborator[]   @relation("ArticleCollaboratorUser")
+  invitedArticleCollaborators   ArticleCollaborator[]   @relation("ArticleCollaboratorInviter")
+  articleShareLinks             ArticleShareLink[]      @relation("ArticleShareLinkCreator")
+  updatedCollaborationSnapshots CollaborationSnapshot[] @relation("CollaborationSnapshotUpdater")
 }
 
 model RefreshToken {
@@ -47,21 +66,106 @@ model PasswordResetToken {
 }
 
 model Article {
-  id              String           @id @default(cuid())
-  userId          String
-  title           String
-  tiptapJSON      String
-  cover           String?
-  summary         String?
-  tags            String[]         @default([])
-  categories      String[]         @default([])
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  platformConfigs PlatformConfig[]
-  publishHistory  PublishHistory[]
+  id                    String                 @id @default(cuid())
+  userId                String
+  teamId                String?
+  title                 String
+  tiptapJSON            String
+  cover                 String?
+  summary               String?
+  tags                  String[]               @default([])
+  categories            String[]               @default([])
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team                  Team?                  @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  platformConfigs       PlatformConfig[]
+  publishHistory        PublishHistory[]
+  collaborators         ArticleCollaborator[]
+  shareLinks            ArticleShareLink[]
+  collaborationSnapshot CollaborationSnapshot?
 
   @@index([userId, updatedAt])
+  @@index([teamId])
+}
+
+model Team {
+  id          String       @id @default(cuid())
+  name        String
+  createdById String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  createdBy   User         @relation("TeamCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  members     TeamMember[]
+  articles    Article[]
+
+  @@index([createdById])
+}
+
+model TeamMember {
+  id          String   @id @default(cuid())
+  teamId      String
+  userId      String
+  role        TeamRole @default(VIEWER)
+  invitedById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  team        Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user        User     @relation("TeamMemberUser", fields: [userId], references: [id], onDelete: Cascade)
+  invitedBy   User?    @relation("TeamMemberInviter", fields: [invitedById], references: [id], onDelete: SetNull)
+
+  @@unique([teamId, userId])
+  @@index([userId])
+  @@index([invitedById])
+}
+
+model ArticleCollaborator {
+  id          String      @id @default(cuid())
+  articleId   String
+  userId      String
+  role        ArticleRole @default(VIEWER)
+  invitedById String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  article     Article     @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  user        User        @relation("ArticleCollaboratorUser", fields: [userId], references: [id], onDelete: Cascade)
+  invitedBy   User?       @relation("ArticleCollaboratorInviter", fields: [invitedById], references: [id], onDelete: SetNull)
+
+  @@unique([articleId, userId])
+  @@index([userId])
+  @@index([invitedById])
+}
+
+model ArticleShareLink {
+  id          String      @id @default(cuid())
+  articleId   String
+  tokenHash   String      @unique
+  role        ArticleRole @default(VIEWER)
+  enabled     Boolean     @default(true)
+  expiresAt   DateTime?
+  lastUsedAt  DateTime?
+  createdById String
+  createdAt   DateTime    @default(now())
+  article     Article     @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  createdBy   User        @relation("ArticleShareLinkCreator", fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([articleId])
+  @@index([createdById])
+  @@index([expiresAt])
+}
+
+model CollaborationSnapshot {
+  id          String   @id @default(cuid())
+  articleId   String   @unique
+  ydocState   Bytes?
+  version     Int      @default(0)
+  updatedById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  article     Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  updatedBy   User?    @relation("CollaborationSnapshotUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@index([updatedById])
 }
 
 model PlatformConfig {

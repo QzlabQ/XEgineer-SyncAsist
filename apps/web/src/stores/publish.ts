@@ -163,6 +163,7 @@ export const usePublishStore = create<PublishStore>((set, get) => ({
           ),
         }))
         await db.publishHistory.add({
+          cacheOwnerId: currentCacheOwnerId(),
           articleId,
           platform: platform.id,
           platformName: platform.name,
@@ -213,6 +214,7 @@ export const usePublishStore = create<PublishStore>((set, get) => ({
         ),
       }))
       await db.publishHistory.add({
+        cacheOwnerId: currentCacheOwnerId(),
         articleId,
         platform: platform.id,
         platformName: platform.name,
@@ -268,7 +270,7 @@ async function persistPlatformConfig(articleId: number, platform: string, config
     .equals([articleId, platform])
     .first()
 
-  const record = { articleId, platform, config: JSON.stringify(config) }
+  const record = { articleId, platform, config: JSON.stringify(config), cacheOwnerId: currentCacheOwnerId() }
   if (existing?.id) {
     await db.platformConfigs.update(existing.id, { ...record, updatedAt: Date.now() })
   } else {
@@ -283,6 +285,7 @@ async function recordPublishResult(
   result: { success: boolean; url?: string; postId?: string; isDraft?: boolean; error?: string; message?: string }
 ) {
   await db.publishHistory.add({
+    cacheOwnerId: currentCacheOwnerId(),
     articleId,
     platform: platform.id,
     platformName: platform.name,
@@ -298,10 +301,15 @@ async function recordPublishResult(
 }
 
 async function syncIfAuthenticated() {
-  if (!useAuthStore.getState().user) return
+  const user = useAuthStore.getState().user
+  if (!user) return
   try {
-    await syncLocalToCloud()
+    await syncLocalToCloud(undefined, user.id)
   } catch {
     // Publishing should not fail just because cloud sync is temporarily unavailable.
   }
+}
+
+function currentCacheOwnerId(): string {
+  return useAuthStore.getState().user?.id ?? 'guest'
 }

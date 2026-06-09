@@ -10,7 +10,7 @@ export function AccountMenu() {
   const router = useRouter()
   const [debugOpen, setDebugOpen] = useState(false)
   const { user, status, logout } = useAuthStore()
-  const { syncStatus, syncError, syncDebug, syncWithCloud } = useArticleStore()
+  const { syncStatus, syncError, syncDebug, syncWithCloud, clearSessionCache } = useArticleStore()
 
   if (status === 'loading') {
     return (
@@ -73,6 +73,8 @@ export function AccountMenu() {
         type="button"
         onClick={async () => {
           await logout()
+          await clearSessionCache(null)
+          router.replace('/articles')
           router.refresh()
         }}
         className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"

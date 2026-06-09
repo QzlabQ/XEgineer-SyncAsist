@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowUpDown, Plus, FileText, Trash2, History, Search, AlertTriangle, X } from 'lucide-react'
+import { ArrowUpDown, Plus, FileText, Trash2, History, Search, AlertTriangle, X, Users } from 'lucide-react'
 import { useArticleStore } from '@/stores/article'
 import { getExtensionBridge } from '@/lib/extension-bridge'
 import { AccountMenu } from '@/components/Auth/AccountMenu'
@@ -61,6 +61,13 @@ export default function ArticlesPage() {
           >
             <History size={16} />
             发布历史
+          </button>
+          <button
+            onClick={() => router.push('/teams')}
+            className="flex items-center gap-2 px-3 py-2 text-gray-600 text-sm rounded-lg hover:bg-gray-100 transition-colors"
+          >
+            <Users size={16} />
+            团队
           </button>
           <button
             onClick={handleCreate}
@@ -156,14 +163,22 @@ export default function ArticlesPage() {
                       <span className={`ml-2 ${syncStatusClass(article.syncStatus)}`}>
                         {syncStatusText(article.syncStatus)}
                       </span>
+                      {article.permissionRole && (
+                        <span className="ml-2 text-blue-500">{roleText(article.permissionRole)}</span>
+                      )}
+                      {article.teamName && (
+                        <span className="ml-2 text-gray-400">{article.teamName}</span>
+                      )}
                     </p>
                   </div>
-                  <button
-                    onClick={(e) => handleDelete(article.id!, e)}
-                    className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all ml-3"
-                  >
-                    <Trash2 size={15} />
-                  </button>
+                  {(article.permissionRole === undefined || article.permissionRole === 'OWNER') && (
+                    <button
+                      onClick={(e) => handleDelete(article.id!, e)}
+                      className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all ml-3"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -172,6 +187,12 @@ export default function ArticlesPage() {
       </main>
     </div>
   )
+}
+
+function roleText(role: string): string {
+  if (role === 'OWNER') return 'Owner'
+  if (role === 'EDITOR') return 'Editor'
+  return 'Viewer'
 }
 
 function syncStatusText(status: string | undefined): string {

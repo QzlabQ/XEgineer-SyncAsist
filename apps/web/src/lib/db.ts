@@ -14,11 +14,18 @@ export interface ArticleRecord {
   syncStatus?: 'local' | 'synced' | 'dirty' | 'error'
   lastSyncedAt?: number
   syncError?: string
+  ownerId?: string
+  ownerName?: string
+  teamId?: string
+  teamName?: string
+  permissionRole?: 'OWNER' | 'EDITOR' | 'VIEWER'
+  cacheOwnerId?: string
 }
 
 export interface PublishRecord {
   id?: number
   remoteId?: string
+  cacheOwnerId?: string
   articleId: number
   platform: string
   platformName: string
@@ -34,6 +41,7 @@ export interface PublishRecord {
 export interface PlatformConfigRecord {
   id?: number
   remoteId?: string
+  cacheOwnerId?: string
   articleId: number
   platform: string
   config: string           // JSON serialized PlatformConfig
@@ -77,6 +85,12 @@ class XEgineerDB extends Dexie {
       articles: '++id, remoteId, title, updatedAt, syncStatus',
       publishHistory: '++id, remoteId, articleId, platform, publishedAt',
       platformConfigs: '++id, remoteId, [articleId+platform]',
+      scheduledPublishes: '++id, jobId, articleId, scheduledAt, status, createdAt',
+    })
+    this.version(4).stores({
+      articles: '++id, remoteId, cacheOwnerId, title, updatedAt, syncStatus',
+      publishHistory: '++id, remoteId, cacheOwnerId, articleId, platform, publishedAt',
+      platformConfigs: '++id, remoteId, cacheOwnerId, [articleId+platform]',
       scheduledPublishes: '++id, jobId, articleId, scheduledAt, status, createdAt',
     })
   }

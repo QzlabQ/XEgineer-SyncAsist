@@ -2,22 +2,32 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getAuthUser } from '@/lib/server/auth'
 import { prisma } from '@/lib/server/prisma'
 import { unauthorized } from '@/lib/server/responses'
+import { articleAccessInclude, getAccessibleArticleWhere, resolveArticleRole } from '@/lib/server/permissions'
 
 export async function GET(request: NextRequest) {
   const user = await getAuthUser(request)
   if (!user) return unauthorized()
 
-  const [articles, platformConfigs, publishHistory] = await Promise.all([
-    prisma.article.findMany({
-      where: { userId: user.id },
-      orderBy: { updatedAt: 'desc' },
-    }),
+  const articles = await prisma.article.findMany({
+    where: getAccessibleArticleWhere(user.id),
+    include: articleAccessInclude(user.id),
+    orderBy: { updatedAt: 'desc' },
+  })
+  const accessibleArticleIds = articles.map(article => article.id)
+
+  const [platformConfigs, publishHistory] = await Promise.all([
     prisma.platformConfig.findMany({
-      where: { userId: user.id },
+      where: { userId: user.id, articleId: { in: accessibleArticleIds } },
       orderBy: { updatedAt: 'desc' },
     }),
     prisma.publishHistory.findMany({
-      where: { userId: user.id },
+      where: {
+        userId: user.id,
+        OR: [
+          { articleId: null },
+          { articleId: { in: accessibleArticleIds } },
+        ],
+      },
       orderBy: { publishedAt: 'desc' },
     }),
   ])
@@ -33,6 +43,11 @@ export async function GET(request: NextRequest) {
       categories: article.categories,
       createdAt: article.createdAt.getTime(),
       updatedAt: article.updatedAt.getTime(),
+      ownerId: article.userId,
+      ownerName: article.user.name || article.user.email,
+      teamId: article.team?.id ?? null,
+      teamName: article.team?.name ?? null,
+      permissionRole: resolveArticleRole(article, user.id) ?? 'VIEWER',
     })),
     platformConfigs: platformConfigs.map(config => ({
       remoteId: config.id,
