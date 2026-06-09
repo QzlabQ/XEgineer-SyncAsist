@@ -125,7 +125,7 @@ function ConfigField({
 
   if (field.type === 'boolean') {
     return (
-      <label className="flex items-center gap-2 text-xs text-gray-500">
+      <label className="flex items-center gap-2 text-xs text-[var(--fg-tertiary)] cursor-pointer select-none">
         <input
           type="checkbox"
           checked={Boolean(value)}
@@ -140,11 +140,11 @@ function ConfigField({
   if (field.type === 'select') {
     return (
       <div className="min-w-0">
-        <label className="text-xs text-gray-500 block mb-1">{label}</label>
+        <label className="text-[11px] text-[var(--fg-tertiary)] block mb-1 font-medium">{label}</label>
         <select
           value={typeof value === 'string' ? value : ''}
           onChange={e => onChange({ [field.key]: e.target.value })}
-          className="block w-full min-w-0 text-xs border border-gray-200 rounded px-2 py-1 bg-white focus:outline-none focus:border-blue-400"
+          className="block w-full min-w-0 text-xs border border-[var(--border-default)] rounded-md px-2 py-1.5 bg-[var(--bg-surface)] focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)] transition-all duration-[120ms] ease-out hover:border-[var(--border-hover)] cursor-pointer"
         >
           <option value="">请选择</option>
           {(field.options ?? []).map(option => (
@@ -158,7 +158,7 @@ function ConfigField({
   if (field.type === 'tags') {
     return (
       <div className="min-w-0">
-        <label className="text-xs text-gray-500 block mb-1">{label}</label>
+        <label className="text-[11px] text-[var(--fg-tertiary)] block mb-1 font-medium">{label}</label>
         <input
           type="text"
           placeholder={field.placeholder ?? '逗号分隔'}
@@ -166,7 +166,7 @@ function ConfigField({
           onChange={e => onChange({
             [field.key]: e.target.value.split(',').map(t => t.trim()).filter(Boolean),
           })}
-          className="block w-full min-w-0 text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:border-blue-400"
+          className="block w-full min-w-0 text-xs border border-[var(--border-default)] rounded-md px-2 py-1.5 bg-[var(--bg-surface)] focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)] transition-all duration-[120ms] ease-out hover:border-[var(--border-hover)] placeholder:text-[var(--fg-tertiary)]"
         />
       </div>
     )
@@ -175,13 +175,13 @@ function ConfigField({
   if (field.type === 'textarea') {
     return (
       <div className="min-w-0">
-        <label className="text-xs text-gray-500 block mb-1">{label}</label>
+        <label className="text-[11px] text-[var(--fg-tertiary)] block mb-1 font-medium">{label}</label>
         <textarea
           rows={3}
           placeholder={field.key === 'summary' && autoSummary ? `自动摘要：${autoSummary}` : field.placeholder}
           value={typeof value === 'string' ? value : ''}
           onChange={e => onChange({ [field.key]: e.target.value })}
-          className="block w-full min-w-0 text-xs border border-gray-200 rounded px-2 py-1 resize-none focus:outline-none focus:border-blue-400"
+          className="block w-full min-w-0 text-xs border border-[var(--border-default)] rounded-md px-2 py-1.5 resize-none bg-[var(--bg-surface)] focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)] transition-all duration-[120ms] ease-out hover:border-[var(--border-hover)]"
         />
       </div>
     )
@@ -230,10 +230,10 @@ function ConfigField({
               placeholder="图片 URL"
               value={imageValue}
               onChange={e => setImageValue(e.target.value)}
-              className="min-w-0 flex-1 text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:border-blue-400"
+              className="min-w-0 flex-1 text-xs border border-[var(--border-default)] rounded-md px-2 py-1.5 bg-[var(--bg-surface)] focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)] transition-all duration-[120ms] ease-out hover:border-[var(--border-hover)] placeholder:text-[var(--fg-tertiary)]"
             />
           )}
-          <label className="p-1.5 text-gray-500 border border-gray-200 rounded cursor-pointer hover:bg-gray-100" title="上传图片">
+          <label className="p-1.5 text-[var(--fg-tertiary)] border border-[var(--border-default)] rounded-md cursor-pointer hover:bg-[var(--bg-hover)] hover:text-[var(--fg-primary)] transition-all duration-[120ms] ease-out active:scale-90" title="上传图片">
             <Upload size={13} />
             <input
               type="file"
@@ -276,7 +276,7 @@ function ConfigField({
 
   return (
     <div className="min-w-0">
-      <label className="text-xs text-gray-500 block mb-1">{label}</label>
+      <label className="text-[11px] text-[var(--fg-tertiary)] block mb-1 font-medium">{label}</label>
       <input
         type="text"
         placeholder={field.placeholder}

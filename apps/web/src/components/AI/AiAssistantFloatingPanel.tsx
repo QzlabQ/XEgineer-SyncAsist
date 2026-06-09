@@ -542,7 +542,7 @@ function ChatBox({
           }}
           rows={2}
           placeholder={placeholder}
-          className="min-w-0 flex-1 resize-none rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+          className="min-w-0 flex-1 resize-none rounded-md border border-[var(--border-default)] bg-[var(--bg-surface)] px-3 py-2 text-[13px] focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)] transition-all duration-[120ms] ease-out hover:border-[var(--border-hover)] placeholder:text-[var(--fg-tertiary)]"
         />
         <button
           type="button"

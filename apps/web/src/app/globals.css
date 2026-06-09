@@ -171,3 +171,109 @@ html, body {
 .tiptap-editor ul[data-type="taskList"] li > label { margin-top: 3px; }
 .tiptap-editor a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
 .tiptap-editor a:hover { color: var(--accent-hover); }
+
+/* ===== Form Elements — unified, subtle ===== */
+select,
+.select-native {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  padding: 8px 32px 8px 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--fg-primary);
+  background: var(--bg-surface);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 12px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: border-color var(--duration-fast) var(--ease-out),
+              box-shadow var(--duration-fast) var(--ease-out);
+}
+select:hover,
+.select-native:hover {
+  border-color: var(--border-hover);
+}
+select:focus,
+.select-native:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
+}
+select option {
+  color: var(--fg-primary);
+  background: var(--bg-surface);
+  padding: 8px;
+}
+
+input[type="text"]:not(.tiptap-editor *),
+input[type="email"],
+input[type="password"],
+input[type="search"],
+input[type="url"],
+input[type="datetime-local"] {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--fg-primary);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  transition: border-color var(--duration-fast) var(--ease-out),
+              box-shadow var(--duration-fast) var(--ease-out);
+}
+input[type="text"]:hover:not(:disabled):not(.tiptap-editor *),
+input[type="email"]:hover:not(:disabled),
+input[type="password"]:hover:not(:disabled),
+input[type="search"]:hover:not(:disabled),
+input[type="url"]:hover:not(:disabled),
+input[type="datetime-local"]:hover:not(:disabled) {
+  border-color: var(--border-hover);
+}
+input[type="text"]:focus:not(.tiptap-editor *),
+input[type="email"]:focus,
+input[type="password"]:focus,
+input[type="search"]:focus,
+input[type="url"]:focus,
+input[type="datetime-local"]:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
+}
+input::placeholder,
+textarea::placeholder {
+  color: var(--fg-tertiary);
+}
+
+textarea:not(.tiptap-editor *) {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--fg-primary);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  resize: vertical;
+  transition: border-color var(--duration-fast) var(--ease-out),
+              box-shadow var(--duration-fast) var(--ease-out);
+}
+textarea:hover:not(:disabled):not(.tiptap-editor *) {
+  border-color: var(--border-hover);
+}
+textarea:focus:not(.tiptap-editor *) {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
+}
+
+input[type="checkbox"]:not(.tiptap-editor *) {
+  accent-color: var(--accent);
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+}
