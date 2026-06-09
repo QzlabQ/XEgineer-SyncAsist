@@ -172,6 +172,29 @@ html, body {
 .tiptap-editor a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
 .tiptap-editor a:hover { color: var(--accent-hover); }
 
+/* ===== shadcn/ui CSS variable mapping ===== */
+:root {
+  --background: var(--bg-surface);
+  --foreground: var(--fg-primary);
+  --card: var(--bg-surface);
+  --card-foreground: var(--fg-primary);
+  --popover: #ffffff;
+  --popover-foreground: var(--fg-primary);
+  --primary: var(--accent);
+  --primary-foreground: #ffffff;
+  --secondary: var(--bg-subtle);
+  --secondary-foreground: var(--fg-primary);
+  --muted: var(--bg-subtle);
+  --muted-foreground: var(--fg-tertiary);
+  --accent-foreground: #ffffff;
+  --destructive: var(--error);
+  --destructive-foreground: #ffffff;
+  --border: var(--border-default);
+  --input: var(--border-default);
+  --ring: var(--accent);
+  --radius: var(--radius-md);
+}
+
 /* ===== Form Elements — unified, subtle ===== */
 select,
 .select-native {
