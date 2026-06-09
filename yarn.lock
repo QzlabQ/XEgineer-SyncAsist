@@ -1180,6 +1180,11 @@
   resolved "https://registry.npmjs.org/@tiptap/extension-code/-/extension-code-2.27.2.tgz"
   integrity sha512-7X9AgwqiIGXoZX7uvdHQsGsjILnN/JaEVtqfXZnPECzKGaWHeK/Ao4sYvIIIffsyZJA8k5DC7ny2/0sAgr2TuA==
 
+"@tiptap/extension-color@^2.11.5":
+  version "2.27.2"
+  resolved "https://registry.yarnpkg.com/@tiptap/extension-color/-/extension-color-2.27.2.tgz#2716ff99b7ece8ad095283bb62c794df9eabb5dc"
+  integrity sha512-sOKCP8/2V3sRM3FdWgMe1lFE5ewsWNCRafiVoujS1+TTHGCj4jw6W+LiumBUk7cRI8kXW/rqGWVC4RVdknYUCA==
+
 "@tiptap/extension-document@^2.11.5", "@tiptap/extension-document@^2.27.2":
   version "2.27.2"
   resolved "https://registry.npmjs.org/@tiptap/extension-document/-/extension-document-2.27.2.tgz"
@@ -1196,6 +1201,11 @@
   integrity sha512-GUN6gPIGXS7ngRJOwdSmtBRBDt9Kt9CM/9pSwKebhLJ+honFoNA+Y6IpVyDvvDMdVNgBchiJLs6qA5H97gAePQ==
   dependencies:
     tippy.js "^6.3.7"
+
+"@tiptap/extension-font-family@^2.11.5":
+  version "2.27.2"
+  resolved "https://registry.yarnpkg.com/@tiptap/extension-font-family/-/extension-font-family-2.27.2.tgz#ead108a0e90b5081fe963c028be8e14d9a0e6291"
+  integrity sha512-Lc3fAF/t3QXuG5AiOjGiCoyxJH7QyAOj5P+X4O6NfFtHST2wxoqIKqnlXkROv+g49Th/ypVGQ/z47wb6EG4iQg==
 
 "@tiptap/extension-gapcursor@^2.11.5", "@tiptap/extension-gapcursor@^2.27.2":
   version "2.27.2"

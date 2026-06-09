@@ -16,6 +16,9 @@ import TableCell from '@tiptap/extension-table-cell'
 import TableHeader from '@tiptap/extension-table-header'
 import Highlight from '@tiptap/extension-highlight'
 import Typography from '@tiptap/extension-typography'
+import TextStyle from '@tiptap/extension-text-style'
+import Color from '@tiptap/extension-color'
+import FontFamily from '@tiptap/extension-font-family'
 import { Bold, Italic, Underline as UnderlineIcon, Strikethrough, Code, Link2, Highlighter } from 'lucide-react'
 import type { EditorView } from '@tiptap/pm/view'
 import { EditorToolbar } from './EditorToolbar'
@@ -142,6 +145,11 @@ export function RichEditor({ content, onChange, editable = true, onEditorReady, 
       TableCell,
       TableHeader,
       Highlight.configure({ multicolor: true }),
+      TextStyle,
+      Color,
+      FontFamily.configure({
+        types: ['textStyle'],
+      }),
       Typography,
     ],
     content: content ? JSON.parse(content) : undefined,
