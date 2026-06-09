@@ -560,7 +560,6 @@ function ChatBox({
           <span className="text-xs text-gray-400">AI 正在思考...</span>
         </div>
       )}
-      </div>
     </section>
   )
 }
