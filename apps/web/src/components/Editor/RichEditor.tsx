@@ -159,26 +159,55 @@ export function RichEditor({ content, onChange, editable = true, onEditorReady, 
     editorProps: {
       attributes: { class: 'tiptap-editor focus:outline-none' },
       handlePaste(view, event) {
-        // Check for H5 inline-styled HTML first
         const html = event.clipboardData?.getData('text/html')
+        const plain = event.clipboardData?.getData('text/plain')
+
+        // Debug: log what we got from clipboard
+        if (html) {
+          const hasStyles = (html.match(/\bstyle="/g) || []).length
+          const hasClasses = (html.match(/\bclass="/g) || []).length
+          const preview = html.slice(0, 200)
+          console.log('[Paste Debug]',
+            'html长度:', html.length,
+            'style属性:', hasStyles,
+            'class属性:', hasClasses,
+            'hasComplexTags:', /<\/?(div|section|figure|table)\b/i.test(html),
+            'shouldPasteAsBlock:', shouldPasteAsHtmlBlock(html),
+            '预览:', preview
+          )
+        } else if (plain) {
+          console.log('[Paste Debug] 只有 text/plain，无 text/html。plain长度:', plain.length, '预览:', plain.slice(0, 100))
+        } else {
+          console.log('[Paste Debug] 剪贴板无数据')
+        }
+
+        // Handle H5/rich HTML paste
         if (html && shouldPasteAsHtmlBlock(html)) {
           event.preventDefault()
-          const { state } = view
-          const node = state.schema.nodes.htmlBlock?.create({ html })
+          const node = view.state.schema.nodes.htmlBlock?.create({ html })
           if (node) {
-            const tr = state.tr.replaceSelectionWith(node)
+            const tr = view.state.tr.replaceSelectionWith(node)
             view.dispatch(tr)
+            console.log('[Paste Debug] ✅ 已插入 HtmlBlock')
             return true
           }
+          console.log('[Paste Debug] ❌ htmlBlock node 创建失败')
           return false
         }
 
-        // Handle image paste
-        const files = Array.from(event.clipboardData?.files ?? []).filter(file => file.type.startsWith('image/'))
-        if (!files.length) return false
-        event.preventDefault()
-        files.forEach(file => insertImageFile(view, file))
-        return true
+        // Fall through to Tiptap default for simple text
+        if (!html || html === `<html><head></head><body>${plain || ''}</body></html>`) {
+          // Handle image paste
+          const files = Array.from(event.clipboardData?.files ?? []).filter(file => file.type.startsWith('image/'))
+          if (!files.length) return false
+          event.preventDefault()
+          files.forEach(file => insertImageFile(view, file))
+          return true
+        }
+
+        // HTML exists but doesn't qualify as rich block — let Tiptap handle it
+        console.log('[Paste Debug] 非富文本 HTML，交 Tiptap 默认处理')
+        return false
       },
       handleDrop(view, event, _slice, moved) {
         if (moved) return false
