@@ -310,3 +310,8 @@ input[type="checkbox"]:not(.tiptap-editor *) {
   height: 14px;
   cursor: pointer;
 }
+
+[data-html-block] { max-width: 100%; overflow-x: hidden; }
+[data-html-block] * { max-width: 100%; word-break: break-word; overflow-wrap: break-word; }
+[data-html-block] img, [data-html-block] video, [data-html-block] table { max-width: 100%; height: auto; }
+

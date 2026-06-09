@@ -342,8 +342,8 @@ export function RichEditor({ content, onChange, editable = true, onEditorReady, 
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto px-8 py-6" onScroll={refreshOverlays}>
-        <EditorContent editor={editor} className="min-h-full" />
+      <div className="flex-1 overflow-y-auto overflow-x-hidden px-8 py-6" onScroll={refreshOverlays}>
+        <EditorContent editor={editor} className="min-h-full max-w-full" style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }} />
       </div>
       {slashState && filteredSlashCommands.length > 0 && (
         <div
