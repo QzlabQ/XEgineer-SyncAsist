@@ -2,6 +2,7 @@ import Dexie, { type Table } from 'dexie'
 
 export interface ArticleRecord {
   id?: number
+  remoteId?: string
   title: string
   tiptapJSON: string       // ProseMirror JSON serialized
   cover?: string
@@ -10,10 +11,14 @@ export interface ArticleRecord {
   categories: string[]
   createdAt: number
   updatedAt: number
+  syncStatus?: 'local' | 'synced' | 'dirty' | 'error'
+  lastSyncedAt?: number
+  syncError?: string
 }
 
 export interface PublishRecord {
   id?: number
+  remoteId?: string
   articleId: number
   platform: string
   platformName: string
@@ -28,9 +33,11 @@ export interface PublishRecord {
 
 export interface PlatformConfigRecord {
   id?: number
+  remoteId?: string
   articleId: number
   platform: string
   config: string           // JSON serialized PlatformConfig
+  updatedAt?: number
 }
 
 export interface ScheduledPublishRecord {
@@ -64,6 +71,12 @@ class XEgineerDB extends Dexie {
       articles: '++id, title, updatedAt',
       publishHistory: '++id, articleId, platform, publishedAt',
       platformConfigs: '++id, [articleId+platform]',
+      scheduledPublishes: '++id, jobId, articleId, scheduledAt, status, createdAt',
+    })
+    this.version(3).stores({
+      articles: '++id, remoteId, title, updatedAt, syncStatus',
+      publishHistory: '++id, remoteId, articleId, platform, publishedAt',
+      platformConfigs: '++id, remoteId, [articleId+platform]',
       scheduledPublishes: '++id, jobId, articleId, scheduledAt, status, createdAt',
     })
   }

@@ -5,6 +5,8 @@ import { getAllRenderers } from '@xegineer/renderer'
 import type { MetaField, PlatformConfig, PlatformRenderer } from '@xegineer/renderer'
 import { db } from '@/lib/db'
 import { getExtensionBridge } from '@/lib/extension-bridge'
+import { syncLocalToCloud } from '@/lib/cloud-sync'
+import { useAuthStore } from './auth'
 
 export type PublishStatus = 'idle' | 'pending' | 'success' | 'error'
 
@@ -169,6 +171,7 @@ export const usePublishStore = create<PublishStore>((set, get) => ({
           success: false,
           error,
         })
+        await syncIfAuthenticated()
       }
     }))
 
@@ -218,6 +221,7 @@ export const usePublishStore = create<PublishStore>((set, get) => ({
         success: false,
         error,
       })
+      await syncIfAuthenticated()
     } finally {
       set({ isPublishing: false })
     }
@@ -266,10 +270,11 @@ async function persistPlatformConfig(articleId: number, platform: string, config
 
   const record = { articleId, platform, config: JSON.stringify(config) }
   if (existing?.id) {
-    await db.platformConfigs.update(existing.id, record)
+    await db.platformConfigs.update(existing.id, { ...record, updatedAt: Date.now() })
   } else {
-    await db.platformConfigs.add(record)
+    await db.platformConfigs.add({ ...record, updatedAt: Date.now() })
   }
+  await syncIfAuthenticated()
 }
 
 async function recordPublishResult(
@@ -289,4 +294,14 @@ async function recordPublishResult(
     error: result.error,
     message: result.message,
   })
+  await syncIfAuthenticated()
+}
+
+async function syncIfAuthenticated() {
+  if (!useAuthStore.getState().user) return
+  try {
+    await syncLocalToCloud()
+  } catch {
+    // Publishing should not fail just because cloud sync is temporarily unavailable.
+  }
 }

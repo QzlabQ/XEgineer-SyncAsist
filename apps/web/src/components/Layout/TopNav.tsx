@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { PenLine, List, Settings, Save, Loader2, Send, History } from 'lucide-react'
 import { useArticleStore } from '@/stores/article'
 import { usePublishStore } from '@/stores/publish'
+import { AccountMenu } from '@/components/Auth/AccountMenu'
 
 export function TopNav() {
   const router = useRouter()
@@ -45,6 +46,8 @@ export function TopNav() {
       </div>
 
       <div className="flex items-center gap-3">
+        <AccountMenu />
+
         {/* Save status */}
         <div className="flex items-center gap-1.5 text-xs text-gray-400">
           {saveStatus === 'saving' && <><Loader2 size={12} className="animate-spin" /> 保存中...</>}

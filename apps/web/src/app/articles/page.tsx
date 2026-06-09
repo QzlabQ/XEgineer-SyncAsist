@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { ArrowUpDown, Plus, FileText, Trash2, History, Search, AlertTriangle, X } from 'lucide-react'
 import { useArticleStore } from '@/stores/article'
 import { getExtensionBridge } from '@/lib/extension-bridge'
+import { AccountMenu } from '@/components/Auth/AccountMenu'
 
 export default function ArticlesPage() {
   const router = useRouter()
@@ -53,6 +54,7 @@ export default function ArticlesPage() {
       <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
         <h1 className="text-xl font-semibold text-gray-900">我的文章</h1>
         <div className="flex items-center gap-2">
+          <AccountMenu />
           <button
             onClick={() => router.push('/history')}
             className="flex items-center gap-2 px-3 py-2 text-gray-600 text-sm rounded-lg hover:bg-gray-100 transition-colors"
@@ -151,6 +153,9 @@ export default function ArticlesPage() {
                         year: 'numeric', month: '2-digit', day: '2-digit',
                         hour: '2-digit', minute: '2-digit',
                       })}
+                      <span className={`ml-2 ${syncStatusClass(article.syncStatus)}`}>
+                        {syncStatusText(article.syncStatus)}
+                      </span>
                     </p>
                   </div>
                   <button
@@ -167,4 +172,18 @@ export default function ArticlesPage() {
       </main>
     </div>
   )
+}
+
+function syncStatusText(status: string | undefined): string {
+  if (status === 'synced') return '已同步'
+  if (status === 'dirty') return '待同步'
+  if (status === 'error') return '同步失败'
+  return '本地草稿'
+}
+
+function syncStatusClass(status: string | undefined): string {
+  if (status === 'synced') return 'text-green-500'
+  if (status === 'dirty') return 'text-amber-500'
+  if (status === 'error') return 'text-red-500'
+  return 'text-gray-400'
 }

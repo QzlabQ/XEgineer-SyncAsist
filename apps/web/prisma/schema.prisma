@@ -1,0 +1,100 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                  String               @id @default(cuid())
+  email               String               @unique
+  name                String?
+  passwordHash        String
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  articles            Article[]
+  refreshTokens       RefreshToken[]
+  passwordResetTokens PasswordResetToken[]
+  publishHistory      PublishHistory[]
+}
+
+model RefreshToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Article {
+  id              String           @id @default(cuid())
+  userId          String
+  title           String
+  tiptapJSON      String
+  cover           String?
+  summary         String?
+  tags            String[]         @default([])
+  categories      String[]         @default([])
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  platformConfigs PlatformConfig[]
+  publishHistory  PublishHistory[]
+
+  @@index([userId, updatedAt])
+}
+
+model PlatformConfig {
+  id        String   @id @default(cuid())
+  userId    String
+  articleId String
+  platform  String
+  config    Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@unique([articleId, platform])
+  @@index([userId])
+}
+
+model PublishHistory {
+  id           String   @id @default(cuid())
+  userId       String
+  articleId    String?
+  platform     String
+  platformName String
+  publishedAt  DateTime
+  url          String?
+  postId       String?
+  isDraft      Boolean
+  success      Boolean
+  error        String?
+  message      String?
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  article      Article? @relation(fields: [articleId], references: [id], onDelete: SetNull)
+
+  @@index([userId, publishedAt])
+  @@index([articleId])
+}
