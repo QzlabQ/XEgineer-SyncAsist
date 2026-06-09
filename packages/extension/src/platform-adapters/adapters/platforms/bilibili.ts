@@ -311,11 +311,13 @@ export class BilibiliAdapter extends CodeAdapter {
 
     const uploadUrl = 'https://api.bilibili.com/x/article/creative/article/upcover'
 
-    // Try multipart FormData first (handles large images better)
+    // Article images use the article upcover endpoint, which expects binary + csrf.
+    // Without csrf Bilibili returns code -111 and the caller later strips the data URI.
     try {
       const blob = await this.dataUriToBlob(dataUri)
       const formData = new FormData()
-      formData.append('cover', blob, `image.${this.guessImageExt(blob)}`)
+      formData.append('binary', blob, `image.${this.guessImageExt(blob)}`)
+      formData.append('csrf', this.csrf)
 
       const uploadResponse = await this.runtime.fetch(uploadUrl, {
         method: 'POST',
@@ -338,12 +340,12 @@ export class BilibiliAdapter extends CodeAdapter {
       logger.debug('FormData upload failed, trying URLSearchParams:', e)
     }
 
-    // Fallback: URLSearchParams with data URI (original approach)
+    // Fallback: URLSearchParams with data URI, matching the older cover-upload shape.
     const uploadResponse = await this.runtime.fetch(uploadUrl, {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ cover: dataUri }),
+      body: new URLSearchParams({ cover: dataUri, csrf: this.csrf }),
     })
 
     const res = await uploadResponse.json() as {
