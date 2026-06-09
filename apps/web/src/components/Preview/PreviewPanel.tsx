@@ -1,17 +1,20 @@
 'use client'
 
 import { useState, useMemo, useRef } from 'react'
-import { tiptapToAST, getRenderer, getAllRenderers } from '@xegineer/renderer'
+import { tiptapToAST, getRenderer, getAllRenderers, renderToH5HTML } from '@xegineer/renderer'
 
 interface PreviewPanelProps {
   title: string
   tiptapJSON: string
 }
 
-const PLATFORMS = getAllRenderers().map(renderer => ({
-  id: renderer.platformId,
-  name: renderer.platformName,
-}))
+const PLATFORMS = [
+  { id: 'weixin-h5', name: 'H5 渲染' },
+  ...getAllRenderers().map(renderer => ({
+    id: renderer.platformId,
+    name: renderer.platformName,
+  })),
+]
 
 /* removed legacy static preview list
 [
@@ -30,6 +33,9 @@ export function PreviewPanel({ title, tiptapJSON }: PreviewPanelProps) {
     try {
       const doc = JSON.parse(tiptapJSON)
       const ast = tiptapToAST(doc, title)
+      if (activePlatform === 'weixin-h5') {
+        return renderToH5HTML(ast)
+      }
       const renderer = getRenderer(activePlatform)
       if (!renderer) return '<p>暂无预览</p>'
       return renderer.renderPreview(ast)

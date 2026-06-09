@@ -8,6 +8,14 @@ export { JianshuRenderer } from './platforms/jianshu'
 export { tiptapToAST, extractPlainText, extractImages } from './converters/tiptap-to-ast'
 export type { ContentDocument, ContentNode, InlineNode, ArticleMeta, Mark, PlatformRenderer, PlatformConfig, PlatformPayload, MetaField } from './types'
 
+// CSS inline style engine for WeChat H5
+export { renderToH5HTML, wrapWechatContainer } from './css-engine/renderer'
+export type { RenderOptions } from './css-engine/renderer'
+export { DEFAULT_THEME, DARK_THEME, ANIMATIONS } from './css-engine/tokens'
+export type { ThemeTokens } from './css-engine/tokens'
+export { toStyleString, card, text, flex, grid, container } from './css-engine/builder'
+export { renderCard, renderQuote, renderDivider, renderTimeline, renderImageText } from './css-engine/components'
+
 import { ZhihuRenderer } from './platforms/zhihu'
 import { BilibiliRenderer } from './platforms/bilibili'
 import { JuejinRenderer } from './platforms/juejin'
