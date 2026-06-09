@@ -49,7 +49,7 @@ export const useArticleStore = create<ArticleStore>((set, get) => ({
 
   async loadArticle(id) {
     const article = await db.articles.get(id)
-    if (article && isVisibleArticle(article, currentCacheOwnerId())) {
+    if (article) {
       set({ currentId: id, current: article })
     } else {
       set({ currentId: null, current: null })
