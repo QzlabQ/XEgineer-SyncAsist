@@ -7,6 +7,7 @@ import {
   Loader2, MessageSquare, Minimize2, Paintbrush, PenLine, Plus, Send, Sparkles, Wand2,
 } from 'lucide-react'
 import { DotmSquare3 } from '@/components/ui/dotm-square-3'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { ArticleRecord } from '@/lib/db'
 import {
   requestAiImage,
@@ -311,17 +312,17 @@ export function AiAssistantFloatingPanel({
             )}
 
             <div className="mb-3 flex items-center gap-2">
-              <select
-                value={tone}
-                onChange={event => setTone(event.target.value as AiTone)}
-                className="rounded-lg border border-gray-200 px-2 py-1.5 text-xs focus:outline-none focus:border-blue-400"
-                title="改写风格"
-              >
-                <option value="professional">专业</option>
-                <option value="casual">轻松</option>
-                <option value="xiaohongshu">小红书</option>
-              </select>
-              <span className="text-xs text-gray-400">{selection?.text ? `${selection.text.length} 字选区` : `${plainText.length} 字全文`}</span>
+              <Select value={tone} onValueChange={v => setTone(v as AiTone)}>
+                <SelectTrigger className="h-auto w-auto min-w-[5rem] py-1.5 px-2.5 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="professional">专业</SelectItem>
+                  <SelectItem value="casual">轻松</SelectItem>
+                  <SelectItem value="xiaohongshu">小红书</SelectItem>
+                </SelectContent>
+              </Select>
+              <span className="text-xs text-[var(--fg-tertiary)]">{selection?.text ? `${selection.text.length} 字选区` : `${plainText.length} 字全文`}</span>
             </div>
 
             <div className="grid grid-cols-4 gap-2">
@@ -394,19 +395,19 @@ export function AiAssistantFloatingPanel({
             )}
 
             <div className="mb-3 flex items-center gap-2">
-              <Paintbrush size={14} className="text-gray-400" />
-              <select
-                value={imageStyle}
-                onChange={event => setImageStyle(event.target.value as AiImageStyle)}
-                className="min-w-0 flex-1 rounded-lg border border-gray-200 px-2 py-1.5 text-xs focus:outline-none focus:border-blue-400"
-                title="图片风格"
-              >
-                <option value="illustration">商业插画</option>
-                <option value="realistic">真实摄影</option>
-                <option value="flat">扁平矢量</option>
-                <option value="tech">科技感</option>
-                <option value="xiaohongshu">小红书</option>
-              </select>
+              <Paintbrush size={14} className="text-[var(--fg-tertiary)]" />
+              <Select value={imageStyle} onValueChange={v => setImageStyle(v as AiImageStyle)}>
+                <SelectTrigger className="h-auto min-w-0 flex-1 py-1.5 px-2.5 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="illustration">商业插画</SelectItem>
+                  <SelectItem value="realistic">真实摄影</SelectItem>
+                  <SelectItem value="flat">扁平矢量</SelectItem>
+                  <SelectItem value="tech">科技感</SelectItem>
+                  <SelectItem value="xiaohongshu">小红书</SelectItem>
+                </SelectContent>
+              </Select>
               <span className="text-xs text-gray-400">{selection?.text ? `${selection.text.length} 字选区` : `${plainText.length} 字全文`}</span>
             </div>
 

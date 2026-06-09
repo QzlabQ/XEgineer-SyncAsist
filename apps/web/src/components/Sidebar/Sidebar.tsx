@@ -6,6 +6,7 @@ import { usePublishStore } from '@/stores/publish'
 import { useArticleStore } from '@/stores/article'
 import { extractImages, extractPlainText, tiptapToAST } from '@xegineer/renderer'
 import type { MetaField, PlatformConfig } from '@xegineer/renderer'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 export function Sidebar() {
   const { current } = useArticleStore()
@@ -141,16 +142,16 @@ function ConfigField({
     return (
       <div className="min-w-0">
         <label className="text-[11px] text-[var(--fg-tertiary)] block mb-1 font-medium">{label}</label>
-        <select
-          value={typeof value === 'string' ? value : ''}
-          onChange={e => onChange({ [field.key]: e.target.value })}
-          className="block w-full min-w-0 text-xs border border-[var(--border-default)] rounded-md px-2 py-1.5 bg-[var(--bg-surface)] focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)] transition-all duration-[120ms] ease-out hover:border-[var(--border-hover)] cursor-pointer"
-        >
-          <option value="">请选择</option>
-          {(field.options ?? []).map(option => (
-            <option key={option.value} value={option.value}>{option.label}</option>
-          ))}
-        </select>
+        <Select value={typeof value === 'string' ? value : ''} onValueChange={v => onChange({ [field.key]: v })}>
+          <SelectTrigger className="h-auto py-1.5 text-xs">
+            <SelectValue placeholder="请选择" />
+          </SelectTrigger>
+          <SelectContent>
+            {(field.options ?? []).map(option => (
+              <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
     )
   }

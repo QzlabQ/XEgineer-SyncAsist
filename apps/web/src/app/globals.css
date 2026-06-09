@@ -206,7 +206,17 @@ select:focus,
 select option {
   color: var(--fg-primary);
   background: var(--bg-surface);
-  padding: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
+/* Chrome/Edge custom scrollbar inside native select dropdowns */
+select optgroup {
+  font-weight: 600;
+  font-size: 11px;
+  color: var(--fg-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 input[type="text"]:not(.tiptap-editor *),
