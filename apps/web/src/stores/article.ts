@@ -200,6 +200,7 @@ export const useArticleStore = create<ArticleStore>((set, get) => ({
   async syncWithCloud() {
     const user = useAuthStore.getState().user
     if (!user) return
+    if (get().syncStatus === 'syncing') return
     const previousCurrentId = get().currentId
     set({
       syncStatus: 'syncing',
