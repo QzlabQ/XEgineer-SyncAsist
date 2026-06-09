@@ -22,6 +22,7 @@ import FontFamily from '@tiptap/extension-font-family'
 import { Bold, Italic, Underline as UnderlineIcon, Strikethrough, Code, Link2, Highlighter } from 'lucide-react'
 import type { EditorView } from '@tiptap/pm/view'
 import { EditorToolbar } from './EditorToolbar'
+import { HtmlBlock, shouldPasteAsHtmlBlock } from '@/lib/tiptap-html-block'
 import type { TextSelectionSnapshot } from '@/lib/tiptap-text'
 
 interface SlashState {
@@ -151,12 +152,28 @@ export function RichEditor({ content, onChange, editable = true, onEditorReady, 
         types: ['textStyle'],
       }),
       Typography,
+      HtmlBlock,
     ],
     content: content ? JSON.parse(content) : undefined,
     editable,
     editorProps: {
       attributes: { class: 'tiptap-editor focus:outline-none' },
       handlePaste(view, event) {
+        // Check for H5 inline-styled HTML first
+        const html = event.clipboardData?.getData('text/html')
+        if (html && shouldPasteAsHtmlBlock(html)) {
+          event.preventDefault()
+          const { state } = view
+          const node = state.schema.nodes.htmlBlock?.create({ html })
+          if (node) {
+            const tr = state.tr.replaceSelectionWith(node)
+            view.dispatch(tr)
+            return true
+          }
+          return false
+        }
+
+        // Handle image paste
         const files = Array.from(event.clipboardData?.files ?? []).filter(file => file.type.startsWith('image/'))
         if (!files.length) return false
         event.preventDefault()
