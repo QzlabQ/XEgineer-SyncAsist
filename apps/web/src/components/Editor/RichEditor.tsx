@@ -164,30 +164,6 @@ export function RichEditor({ content, onChange, editable = true, onEditorReady, 
           setSelectionToolbar(null)
           return false
         },
-        paste: (view, event) => {
-          const html = event.clipboardData?.getData('text/html')
-          if (!html) return false
-
-          console.log('[Paste] html长度:', html.length, '预览:', html.slice(0, 150))
-
-          if (!shouldPasteAsHtmlBlock(html)) {
-            console.log('[Paste] 非富文本，交默认处理')
-            return false
-          }
-
-          event.preventDefault()
-          event.stopPropagation()
-
-          const node = view.state.schema.nodes.htmlBlock?.create({ html })
-          if (!node) {
-            console.log('[Paste] htmlBlock node 不存在于 schema。可用 nodes:', Object.keys(view.state.schema.nodes))
-            return false
-          }
-
-          view.dispatch(view.state.tr.replaceSelectionWith(node))
-          console.log('[Paste] ✅ HtmlBlock 已插入')
-          return true
-        },
       },
       handleDrop(view, event, _slice, moved) {
         if (moved) return false
@@ -333,7 +309,21 @@ export function RichEditor({ content, onChange, editable = true, onEditorReady, 
   if (!editor) return null
 
   return (
-    <div className="flex flex-col h-full" onKeyDownCapture={handleEditorKeyDown}>
+    <div className="flex flex-col h-full" onKeyDownCapture={handleEditorKeyDown} onPasteCapture={(e) => {
+      const html = e.clipboardData.getData('text/html')
+      if (!html || !editor) return
+      console.log('[Paste Capture] html长度:', html.length, 'shouldBlock:', shouldPasteAsHtmlBlock(html))
+      if (!shouldPasteAsHtmlBlock(html)) return
+      e.preventDefault()
+      e.stopPropagation()
+      const node = editor.view.state.schema.nodes.htmlBlock?.create({ html })
+      if (node) {
+        editor.view.dispatch(editor.view.state.tr.replaceSelectionWith(node))
+        console.log('[Paste Capture] ✅ HtmlBlock inserted')
+      } else {
+        console.log('[Paste Capture] htmlBlock schema missing. Nodes:', Object.keys(editor.view.state.schema.nodes))
+      }
+    }}>
       <EditorToolbar editor={editor} onImageUpload={handleImageUpload} />
 
       {selectionToolbar && (
