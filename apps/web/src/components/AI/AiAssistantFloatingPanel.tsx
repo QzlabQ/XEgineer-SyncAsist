@@ -255,7 +255,7 @@ export function AiAssistantFloatingPanel({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="fixed bottom-6 right-6 z-[80] inline-flex h-12 w-12 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg hover:bg-blue-700"
+        className="fixed bottom-6 right-6 z-[80] inline-flex h-12 w-12 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow-lg hover:bg-[var(--accent-hover)]"
         title="AI 助手"
       >
         <Sparkles size={20} />
@@ -267,7 +267,7 @@ export function AiAssistantFloatingPanel({
     <div className="fixed bottom-6 right-6 z-[80] w-[25rem] max-w-[calc(100vw-2rem)] overflow-hidden rounded-lg border border-gray-200 bg-white shadow-xl">
       <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
         <div className="flex items-center gap-2">
-          <div className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+          <div className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--accent-soft)] text-[var(--accent)]">
             <Bot size={17} />
           </div>
           <div>
@@ -290,14 +290,14 @@ export function AiAssistantFloatingPanel({
           <button
             type="button"
             onClick={() => setTab('write')}
-            className={`h-8 rounded-md ${tab === 'write' ? 'bg-white text-blue-700 shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}
+            className={`h-8 rounded-md ${tab === 'write' ? 'bg-white text-[var(--accent-text)] shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}
           >
             写作
           </button>
           <button
             type="button"
             onClick={() => setTab('image')}
-            className={`h-8 rounded-md ${tab === 'image' ? 'bg-white text-blue-700 shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}
+            className={`h-8 rounded-md ${tab === 'image' ? 'bg-white text-[var(--accent-text)] shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}
           >
             图片
           </button>
@@ -332,7 +332,7 @@ export function AiAssistantFloatingPanel({
                   type="button"
                   onClick={() => void runWriteAction(action.mode)}
                   disabled={Boolean(writeLoadingMode)}
-                  className="inline-flex h-9 items-center justify-center gap-1 rounded-lg border border-gray-200 text-xs text-gray-700 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 disabled:opacity-50"
+                  className="inline-flex h-9 items-center justify-center gap-1 rounded-lg border border-gray-200 text-xs text-gray-700 hover:border-[var(--accent)]/20 hover:bg-[var(--accent-soft)] hover:text-[var(--accent-text)] disabled:opacity-50"
                 >
                   {writeLoadingMode === action.mode ? <Loader2 size={14} className="animate-spin" /> : action.icon}
                   {action.label}
@@ -367,7 +367,7 @@ export function AiAssistantFloatingPanel({
                       type="button"
                       onClick={() => applyTextResult(writeResultText)}
                       disabled={!canEdit || !writeResultText}
-                      className="w-full rounded-lg bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
+                      className="w-full rounded-lg bg-[var(--accent)] px-3 py-2 text-sm text-white hover:bg-[var(--accent-hover)] disabled:opacity-50"
                     >
                       {writePending.mode === 'continue' ? '插入正文' : selection ? '替换选区' : '替换全文'}
                     </button>
@@ -418,7 +418,7 @@ export function AiAssistantFloatingPanel({
                   type="button"
                   onClick={() => void runImageAction(action.mode)}
                   disabled={Boolean(imageLoadingMode)}
-                  className="inline-flex h-9 items-center justify-center gap-1 rounded-lg border border-gray-200 text-xs text-gray-700 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 disabled:opacity-50"
+                  className="inline-flex h-9 items-center justify-center gap-1 rounded-lg border border-gray-200 text-xs text-gray-700 hover:border-[var(--accent)]/20 hover:bg-[var(--accent-soft)] hover:text-[var(--accent-text)] disabled:opacity-50"
                 >
                   {imageLoadingMode === action.mode ? <Loader2 size={14} className="animate-spin" /> : action.icon}
                   {action.label}
@@ -444,7 +444,7 @@ export function AiAssistantFloatingPanel({
                     type="button"
                     onClick={() => void applyMetaPatch({ cover: imagePending.image.dataUrl }, 'image')}
                     disabled={!canEdit}
-                    className="rounded-lg bg-blue-600 px-3 py-2 text-xs text-white hover:bg-blue-700 disabled:opacity-50"
+                    className="rounded-lg bg-[var(--accent)] px-3 py-2 text-xs text-white hover:bg-[var(--accent-hover)] disabled:opacity-50"
                   >
                     设为封面
                   </button>
@@ -452,7 +452,7 @@ export function AiAssistantFloatingPanel({
                     type="button"
                     onClick={() => insertImageResult(imagePending.image)}
                     disabled={!canEdit || !editor}
-                    className="rounded-lg bg-blue-600 px-3 py-2 text-xs text-white hover:bg-blue-700 disabled:opacity-50"
+                    className="rounded-lg bg-[var(--accent)] px-3 py-2 text-xs text-white hover:bg-[var(--accent-hover)] disabled:opacity-50"
                   >
                     插入正文
                   </button>
@@ -524,7 +524,7 @@ function ChatBox({
           <div
             key={`${message.role}-${index}`}
             className={`rounded-lg px-2.5 py-2 text-xs leading-5 ${
-              message.role === 'user' ? 'ml-8 bg-blue-600 text-white' : 'mr-8 bg-white text-gray-700 border border-gray-200'
+              message.role === 'user' ? 'ml-8 bg-[var(--accent)] text-white' : 'mr-8 bg-white text-gray-700 border border-gray-200'
             }`}
           >
             {message.content}
@@ -549,7 +549,7 @@ function ChatBox({
           type="button"
           onClick={onSend}
           disabled={disabled || !input.trim()}
-          className="inline-flex w-10 items-center justify-center rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+          className="inline-flex w-10 items-center justify-center rounded-lg bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)] disabled:opacity-50"
           title="发送"
         >
           {loading ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
@@ -596,7 +596,7 @@ function renderWriteResult(
             type="button"
             onClick={() => handlers.onMetaApply({ summary: result })}
             disabled={!handlers.canEdit}
-            className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs text-white hover:bg-blue-700 disabled:opacity-50"
+            className="rounded-lg bg-[var(--accent)] px-3 py-1.5 text-xs text-white hover:bg-[var(--accent-hover)] disabled:opacity-50"
           >
             应用摘要
           </button>
@@ -616,7 +616,7 @@ function renderWriteResult(
             type="button"
             onClick={() => handlers.onTitleApply(title)}
             disabled={!handlers.canEdit}
-            className="block w-full rounded-lg border border-gray-200 px-3 py-2 text-left text-sm hover:border-blue-200 hover:bg-blue-50 disabled:opacity-50"
+            className="block w-full rounded-lg border border-gray-200 px-3 py-2 text-left text-sm hover:border-[var(--accent)]/20 hover:bg-[var(--accent-soft)] disabled:opacity-50"
           >
             {title}
           </button>
@@ -630,14 +630,14 @@ function renderWriteResult(
       <div className="flex flex-wrap gap-1.5">
         {result.tags.length === 0 && <span className="text-gray-400">未生成标签</span>}
         {result.tags.map(tag => (
-          <span key={tag} className="rounded-full bg-blue-50 px-2 py-1 text-xs text-blue-700">{tag}</span>
+          <span key={tag} className="rounded-full bg-[var(--accent-soft)] px-2 py-1 text-xs text-[var(--accent-text)]">{tag}</span>
         ))}
       </div>
       <button
         type="button"
         onClick={() => handlers.onMetaApply({ tags: result.tags })}
         disabled={!handlers.canEdit || result.tags.length === 0}
-        className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs text-white hover:bg-blue-700 disabled:opacity-50"
+        className="rounded-lg bg-[var(--accent)] px-3 py-1.5 text-xs text-white hover:bg-[var(--accent-hover)] disabled:opacity-50"
       >
         应用标签
       </button>
