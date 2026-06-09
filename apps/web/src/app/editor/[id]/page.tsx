@@ -81,11 +81,11 @@ export default function EditorPage() {
     <div className="h-screen flex flex-col overflow-hidden max-w-full">
       <TopNav />
 
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden min-w-0">
         <Sidebar />
 
         {/* Editor area */}
-        <div className="flex-1 flex flex-col overflow-hidden bg-white">
+        <div className="flex-1 flex flex-col overflow-hidden bg-white min-w-0">
           {/* Title */}
           <div className="relative z-20 bg-white px-8 pt-8 pb-2 flex-shrink-0">
             <div className="flex items-start gap-3">
@@ -119,7 +119,7 @@ export default function EditorPage() {
           </div>
 
           {/* Editor */}
-          <div className="flex-1 overflow-hidden overflow-x-hidden">
+          <div className="flex-1 overflow-hidden overflow-x-hidden min-w-0">
             <RichEditor
               content={current.tiptapJSON}
               onChange={handleContentChange}
