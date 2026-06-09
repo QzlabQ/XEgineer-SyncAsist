@@ -37,19 +37,19 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center gap-4">
+    <div className="min-h-screen bg-[var(--bg-app)]">
+      <header className="bg-[var(--bg-surface)] border-b border-[var(--border-default)] px-6 py-4 flex items-center gap-4">
         <button onClick={() => router.back()} className="p-1.5 text-gray-500 hover:bg-gray-100 rounded-lg">
           <ArrowLeft size={18} />
         </button>
-        <h1 className="text-xl font-semibold text-gray-900">设置</h1>
+        <h1 className="text-lg font-semibold text-[var(--fg-primary)] tracking-tight">设置</h1>
       </header>
 
       <main className="max-w-2xl mx-auto px-6 py-8 space-y-6">
         {/* Extension status */}
-        <section className="bg-white rounded-xl border border-gray-200 p-5">
+        <section className="bg-[var(--bg-surface)] rounded-lg border border-[var(--border-default)] p-5">
           <h2 className="font-semibold text-gray-900 mb-3">浏览器扩展</h2>
-          {extensionInstalled === null && <p className="text-sm text-gray-400">检测中...</p>}
+          {extensionInstalled === null && <p className="text-[13px] text-[var(--fg-tertiary)]">检测中...</p>}
           {extensionInstalled === false && (
             <div className="flex items-start gap-3 p-3 bg-orange-50 rounded-lg">
               <AlertCircle size={18} className="text-orange-500 flex-shrink-0 mt-0.5" />
@@ -84,7 +84,7 @@ export default function SettingsPage() {
         </section>
 
         {/* Platform accounts */}
-        <section className="bg-white rounded-xl border border-gray-200 p-5">
+        <section className="bg-[var(--bg-surface)] rounded-lg border border-[var(--border-default)] p-5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold text-gray-900">平台账号</h2>
             <button

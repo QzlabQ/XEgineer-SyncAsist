@@ -40,20 +40,20 @@ export function Sidebar() {
   }
 
   return (
-    <div className="w-60 flex-shrink-0 border-r border-gray-200 bg-gray-50 flex flex-col overflow-y-auto">
-      <div className="px-4 py-3 border-b border-gray-200">
-        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">发布平台</h3>
+    <div className="w-60 flex-shrink-0 border-r border-[var(--border-default)] bg-[var(--bg-subtle)] flex flex-col overflow-y-auto">
+      <div className="px-4 py-3 border-b border-[var(--border-default)]">
+        <h3 className="text-[11px] font-semibold text-[var(--fg-tertiary)] uppercase tracking-widest select-none">发布平台</h3>
       </div>
 
-      <div className="flex-1 py-2">
-        {platforms.map(platform => (
-          <div key={platform.id} className="px-3 py-1">
+      <div className="flex-1 py-1">
+        {platforms.map((platform, i) => (
+          <div key={platform.id} className="px-2 py-0.5 stagger-item" style={{ animationDelay: `${i * 30}ms` }}>
             <div
-              className="flex items-center gap-2 py-1.5 px-2 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors"
+              className="flex items-center gap-2 py-2 px-2 rounded-md cursor-pointer hover:bg-[var(--bg-hover)] active:scale-[0.98] transition-all duration-[120ms] ease-out"
               onClick={() => togglePlatform(platform.id)}
             >
-              <div className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
-                platform.selected ? 'bg-blue-600 border-blue-600' : 'border-gray-300'
+              <div className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all duration-[120ms] ease-out ${
+                platform.selected ? 'bg-[var(--accent)] border-[var(--accent)]' : 'border-[var(--border-hover)]'
               }`}>
                 {platform.selected && (
                   <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
@@ -61,13 +61,13 @@ export function Sidebar() {
                   </svg>
                 )}
               </div>
-              <span className="text-sm text-gray-700 flex-1">{platform.name}</span>
+              <span className="text-[13px] text-[var(--fg-primary)] flex-1 font-medium">{platform.name}</span>
               <div className="flex items-center gap-1">
-                {platform.authStatus === 'authenticated' && <CheckCircle size={13} className="text-green-500" />}
-                {platform.authStatus === 'unauthenticated' && <AlertCircle size={13} className="text-orange-400" />}
+                {platform.authStatus === 'authenticated' && <CheckCircle size={13} className="text-[var(--success)]" />}
+                {platform.authStatus === 'unauthenticated' && <AlertCircle size={13} className="text-[var(--warning)]" />}
                 <button
                   onClick={(e) => handleCheckAuth(platform.id, e)}
-                  className="p-0.5 text-gray-400 hover:text-gray-600 rounded"
+                  className="p-1 text-[var(--fg-tertiary)] hover:text-[var(--fg-primary)] hover:bg-[var(--bg-hover)] rounded transition-all duration-[120ms] ease-out active:scale-90"
                   title="检查登录状态"
                 >
                   <RefreshCw size={11} />
@@ -88,15 +88,15 @@ export function Sidebar() {
                     onChange={(patch) => updateConfig(platform.id, patch)}
                   />
                 ))}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 mt-1">
                   <input
                     type="checkbox"
                     id={`draft-${platform.id}`}
                     checked={platform.config.isDraft ?? true}
                     onChange={e => updateConfig(platform.id, { isDraft: e.target.checked })}
-                    className="rounded"
+                    className="rounded-sm accent-[var(--accent)]"
                   />
-                  <label htmlFor={`draft-${platform.id}`} className="text-xs text-gray-500">保存为草稿</label>
+                  <label htmlFor={`draft-${platform.id}`} className="text-[11px] text-[var(--fg-tertiary)] cursor-pointer select-none">保存为草稿</label>
                 </div>
               </div>
             )}

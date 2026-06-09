@@ -70,10 +70,10 @@ export function PreviewPanel({ title, tiptapJSON }: PreviewPanelProps) {
   }
 
   return (
-    <div className="flex flex-col h-full bg-gray-50 border-l border-gray-200">
+    <div className="flex flex-col h-full bg-[var(--bg-app)] border-l border-[var(--border-default)]">
       {/* Tab bar */}
-      <div className="flex items-center gap-1 px-3 py-2 border-b border-gray-200 bg-white" role="tablist" aria-label="平台预览">
-        <span className="text-xs text-gray-500 mr-2">预览</span>
+      <div className="flex items-center gap-1 px-3 py-2 border-b border-[var(--border-default)] bg-[var(--bg-surface)]" role="tablist" aria-label="平台预览">
+        <span className="text-xs text-[var(--fg-tertiary)] mr-2 select-none">预览</span>
         {PLATFORMS.map((p, index) => (
           <button
             key={p.id}
@@ -84,10 +84,10 @@ export function PreviewPanel({ title, tiptapJSON }: PreviewPanelProps) {
             tabIndex={activePlatform === p.id ? 0 : -1}
             onClick={() => setActivePlatform(p.id)}
             onKeyDown={(event) => handleTabKey(event, index)}
-            className={`px-3 py-1 text-xs rounded-full transition-colors ${
+            className={`px-3 py-1 text-xs rounded-md transition-all duration-[120ms] ease-out active:scale-[0.97] ${
               activePlatform === p.id
-                ? 'bg-blue-600 text-white'
-                : 'text-gray-600 hover:bg-gray-100'
+                ? 'bg-[var(--accent)] text-white'
+                : 'text-[var(--fg-secondary)] hover:text-[var(--fg-primary)] hover:bg-[var(--bg-hover)]'
             }`}
           >
             {p.name}

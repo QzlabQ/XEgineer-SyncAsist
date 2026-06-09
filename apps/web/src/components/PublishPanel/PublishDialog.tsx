@@ -106,8 +106,8 @@ export function PublishDialog() {
   if (!showPublishDialog) return null
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4">
+    <div className="fixed inset-0 bg-black/25 flex items-center justify-center z-50 animate-fade-in">
+      <div className="bg-[var(--bg-surface)] rounded-xl shadow-[var(--shadow-xl)] w-full max-w-md mx-4 animate-scale-in border border-[var(--border-subtle)]">
         <div className="p-6">
           <h2 className="text-lg font-semibold mb-4">
             {hasResults ? '发布结果' : '确认发布'}
@@ -171,7 +171,7 @@ export function PublishDialog() {
           {!hasResults && (
             <div className="mt-4 space-y-3">
               <div className="p-3 bg-blue-50 rounded-lg">
-                <p className="text-xs text-blue-700">立即发布会先保存为草稿；定时发布会先创建平台草稿，到点再尝试发布这份草稿</p>
+                <p className="text-xs text-[var(--accent-text)]">立即发布会先保存为草稿；定时发布会先创建平台草稿，到点再尝试发布这份草稿</p>
               </div>
 
               {selected.length > 0 && (
@@ -202,7 +202,7 @@ export function PublishDialog() {
         <div className="flex justify-end gap-3 px-6 pb-6">
           <button
             onClick={handleClose}
-            className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+            className="px-4 py-2 text-[13px] font-medium text-[var(--fg-secondary)] hover:bg-[var(--bg-hover)] rounded-md active:scale-[0.97] transition-all duration-[120ms] ease-out transition-colors"
           >
             {hasResults ? '关闭' : '取消'}
           </button>
@@ -219,7 +219,7 @@ export function PublishDialog() {
               <button
                 onClick={handlePublish}
                 disabled={isPublishing || scheduling}
-                className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                className="px-4 py-2 text-[13px] font-medium bg-[var(--accent)] text-white rounded-md hover:bg-[var(--accent-hover)] active:scale-[0.97] disabled:opacity-40 transition-all duration-[120ms] ease-out disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
               >
                 {isPublishing && <Loader2 size={14} className="animate-spin" />}
                 确认发布

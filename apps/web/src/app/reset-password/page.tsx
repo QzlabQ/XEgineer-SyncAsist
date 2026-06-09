@@ -8,7 +8,7 @@ import { useAuthStore } from '@/stores/auth'
 
 export default function ResetPasswordPage() {
   return (
-    <Suspense fallback={<main className="min-h-screen bg-gray-50" />}>
+    <Suspense fallback={<main className="min-h-screen bg-[var(--bg-app)]" />}>
       <ResetPasswordForm />
     </Suspense>
   )
@@ -38,14 +38,14 @@ function ResetPasswordForm() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-      <div className="w-full max-w-sm rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-        <h1 className="text-xl font-semibold text-gray-900">重置密码</h1>
-        <p className="mt-1 mb-6 text-sm text-gray-500">请输入至少 8 位新密码。</p>
+    <main className="min-h-screen bg-[var(--bg-app)] flex items-center justify-center px-4">
+      <div className="w-full max-w-sm rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-6 shadow-sm">
+        <h1 className="text-xl font-semibold text-[var(--fg-primary)]">重置密码</h1>
+        <p className="mt-1 mb-6 text-sm text-[var(--fg-tertiary)]">请输入至少 8 位新密码。</p>
         {done ? (
           <div className="space-y-4">
             <p className="text-sm text-green-600">密码已更新，请重新登录。</p>
-            <Link href="/login" className="block text-sm text-blue-600 hover:underline">去登录</Link>
+            <Link href="/login" className="block text-sm text-[var(--accent)] hover:underline">去登录</Link>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -54,14 +54,14 @@ function ResetPasswordForm() {
               value={password}
               onChange={event => setPassword(event.target.value)}
               minLength={8}
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+              className="w-full rounded-md border border-[var(--border-default)] px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
               required
             />
             {error && <p className="text-sm text-red-500">{error}</p>}
             <button
               type="submit"
               disabled={loading || !token}
-              className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+              className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white hover:bg-[var(--accent-hover)] disabled:opacity-50"
             >
               {loading ? <Loader2 size={15} className="animate-spin" /> : <KeyRound size={15} />}
               更新密码

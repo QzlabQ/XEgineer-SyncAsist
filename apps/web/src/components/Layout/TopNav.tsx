@@ -15,59 +15,44 @@ export function TopNav() {
   const canPublish = Boolean(current && current.permissionRole !== 'VIEWER')
 
   return (
-    <header className="relative z-30 h-12 flex items-center justify-between px-4 border-b border-gray-200 bg-white flex-shrink-0">
+    <header className="relative z-30 h-12 flex items-center justify-between px-4 border-b border-[var(--border-default)] bg-[var(--bg-surface)] flex-shrink-0">
       <div className="flex items-center gap-4">
-        <div className="flex items-center gap-1.5 font-semibold text-gray-900">
-          <PenLine size={18} className="text-blue-600" />
-          <span>XEgineer</span>
+        <div className="flex items-center gap-2 select-none">
+          <PenLine size={18} className="text-[var(--accent)]" />
+          <span className="font-semibold text-sm text-[var(--fg-primary)] tracking-tight">XEgineer</span>
         </div>
-        <nav className="flex items-center gap-1">
-          <button
-            onClick={() => router.push('/articles')}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <List size={14} />
-            文章列表
-          </button>
-          <button
-            onClick={() => router.push('/settings')}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <Settings size={14} />
-            设置
-          </button>
-          <button
-            onClick={() => router.push('/history')}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <History size={14} />
-            发布历史
-          </button>
-          <button
-            onClick={() => router.push('/teams')}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <Users size={14} />
-            团队
-          </button>
+        <nav className="flex items-center gap-0.5">
+          {[
+            { label: '文章列表', icon: List, path: '/articles' },
+            { label: '设置', icon: Settings, path: '/settings' },
+            { label: '发布历史', icon: History, path: '/history' },
+            { label: '团队', icon: Users, path: '/teams' },
+          ].map(item => (
+            <button
+              key={item.path}
+              onClick={() => router.push(item.path)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-[13px] font-medium text-[var(--fg-secondary)] hover:text-[var(--fg-primary)] hover:bg-[var(--bg-hover)] rounded-md transition-all duration-[120ms] ease-out active:scale-[0.97]"
+            >
+              <item.icon size={14} />
+              {item.label}
+            </button>
+          ))}
         </nav>
       </div>
 
       <div className="flex items-center gap-3">
         <AccountMenu />
 
-        {/* Save status */}
-        <div className="flex items-center gap-1.5 text-xs text-gray-400">
+        <div className="flex items-center gap-1.5 text-xs text-[var(--fg-tertiary)] min-w-[64px] justify-end">
           {saveStatus === 'saving' && <><Loader2 size={12} className="animate-spin" /> 保存中...</>}
           {saveStatus === 'saved' && <><Save size={12} /> 已保存</>}
-          {saveStatus === 'error' && <span className="text-red-400">保存失败</span>}
+          {saveStatus === 'error' && <span className="text-[var(--error)]">保存失败</span>}
         </div>
 
-        {/* Publish button */}
         <button
           onClick={() => setShowPublishDialog(true)}
           disabled={!canPublish}
-          className="flex items-center gap-1.5 px-4 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="flex items-center gap-1.5 px-4 py-1.5 text-[13px] font-medium bg-[var(--accent)] text-white rounded-md hover:bg-[var(--accent-hover)] active:scale-[0.97] disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100 transition-all duration-[120ms] ease-out"
           title={current?.permissionRole === 'VIEWER' ? 'Viewer 不能发布共享文章' : '发布'}
         >
           <Send size={14} />

@@ -49,15 +49,15 @@ function LoginForm() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+          className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white hover:bg-[var(--accent-hover)] disabled:opacity-50"
         >
           {loading ? <Loader2 size={15} className="animate-spin" /> : <LogIn size={15} />}
           登录
         </button>
       </form>
       <div className="mt-4 flex justify-between text-sm">
-        <Link href="/register" className="text-blue-600 hover:underline">注册账号</Link>
-        <Link href="/forgot-password" className="text-gray-500 hover:text-blue-600">忘记密码</Link>
+        <Link href="/register" className="text-[var(--accent)] hover:underline">注册账号</Link>
+        <Link href="/forgot-password" className="text-[var(--fg-tertiary)] hover:text-[var(--accent)]">忘记密码</Link>
       </div>
     </AuthShell>
   )
@@ -65,10 +65,10 @@ function LoginForm() {
 
 function AuthShell({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
   return (
-    <main className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-      <div className="w-full max-w-sm rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-        <h1 className="text-xl font-semibold text-gray-900">{title}</h1>
-        <p className="mt-1 mb-6 text-sm text-gray-500">{subtitle}</p>
+    <main className="min-h-screen bg-[var(--bg-app)] flex items-center justify-center px-4">
+      <div className="w-full max-w-sm rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-6 shadow-sm">
+        <h1 className="text-xl font-semibold text-[var(--fg-primary)]">{title}</h1>
+        <p className="mt-1 mb-6 text-sm text-[var(--fg-tertiary)]">{subtitle}</p>
         {children}
       </div>
     </main>
@@ -78,12 +78,12 @@ function AuthShell({ title, subtitle, children }: { title: string; subtitle: str
 function AuthInput({ label, type, value, onChange }: { label: string; type: string; value: string; onChange: (value: string) => void }) {
   return (
     <label className="block">
-      <span className="text-sm text-gray-600">{label}</span>
+      <span className="text-sm text-[var(--fg-secondary)]">{label}</span>
       <input
         type={type}
         value={value}
         onChange={event => onChange(event.target.value)}
-        className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+        className="mt-1 w-full rounded-md border border-[var(--border-default)] px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
         required
       />
     </label>

@@ -14,7 +14,7 @@ export function AccountMenu() {
 
   if (status === 'loading') {
     return (
-      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-400">
+      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-[var(--fg-tertiary)]">
         <Loader2 size={13} className="animate-spin" />
         账号加载中
       </span>
@@ -26,7 +26,7 @@ export function AccountMenu() {
       <button
         type="button"
         onClick={() => router.push('/login')}
-        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium text-[var(--fg-secondary)] hover:text-[var(--fg-primary)] hover:bg-[var(--bg-hover)] rounded-md transition-all duration-[120ms] ease-out active:scale-[0.97]"
       >
         <LogIn size={14} />
         登录同步
@@ -36,7 +36,7 @@ export function AccountMenu() {
 
   return (
     <div className="relative flex items-center gap-2">
-      <span className="hidden sm:inline-flex items-center gap-1.5 text-xs text-gray-500 max-w-48 truncate" title={user.email}>
+      <span className="hidden sm:inline-flex items-center gap-1.5 text-xs text-[var(--fg-secondary)] max-w-48 truncate" title={user.email}>
         <UserCircle size={14} />
         {user.name || user.email}
       </span>
@@ -44,7 +44,7 @@ export function AccountMenu() {
         type="button"
         onClick={() => void syncWithCloud()}
         disabled={syncStatus === 'syncing'}
-        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg disabled:opacity-50 transition-colors"
+        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-[var(--accent-text)] bg-[var(--accent-soft)] hover:bg-[var(--accent)]/10 rounded-md disabled:opacity-50 transition-all duration-[120ms] ease-out active:scale-[0.97]"
         title={syncError || '同步云端数据'}
       >
         {syncStatus === 'syncing' ? <Loader2 size={13} className="animate-spin" /> : <Cloud size={13} />}

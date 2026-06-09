@@ -37,15 +37,15 @@ export default function SetupPage() {
       <div className="max-w-lg w-full">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl mb-4 shadow-lg">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-[var(--accent)] rounded-2xl mb-4 shadow-lg">
             <Chrome size={32} className="text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">安装浏览器扩展</h1>
-          <p className="text-gray-500 text-sm">XEgineer 需要 Chrome 扩展来调用各平台 API 完成发布</p>
+          <h1 className="text-2xl font-bold text-[var(--fg-primary)] mb-2">安装浏览器扩展</h1>
+          <p className="text-[var(--fg-tertiary)] text-sm">XEgineer 需要 Chrome 扩展来调用各平台 API 完成发布</p>
         </div>
 
         {/* Steps */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6 space-y-5">
+        <div className="bg-[var(--bg-surface)] rounded-2xl shadow-sm border border-gray-100 p-6 mb-6 space-y-5">
           {STEPS.map((step, i) => (
             <div key={i} className="flex gap-4">
               <div className="flex-shrink-0 flex flex-col items-center">
@@ -56,13 +56,13 @@ export default function SetupPage() {
               </div>
               <div className="pb-5 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">步骤 {i + 1}</span>
-                  <span className="text-sm font-semibold text-gray-900">{step.title}</span>
+                  <span className="text-xs font-semibold text-[var(--accent)] bg-blue-50 px-2 py-0.5 rounded-full">步骤 {i + 1}</span>
+                  <span className="text-sm font-semibold text-[var(--fg-primary)]">{step.title}</span>
                 </div>
-                <p className="text-sm text-gray-500">{step.desc}</p>
-                {step.extra && <p className="text-sm text-gray-500 mt-0.5">{step.extra}</p>}
+                <p className="text-sm text-[var(--fg-tertiary)]">{step.desc}</p>
+                {step.extra && <p className="text-sm text-[var(--fg-tertiary)] mt-0.5">{step.extra}</p>}
                 {step.code && (
-                  <code className="mt-2 block text-xs bg-gray-900 text-green-400 px-3 py-2 rounded-lg font-mono break-all">
+                  <code className="mt-2 block text-xs bg-gray-900 text-green-400 px-3 py-2 rounded-md font-mono break-all">
                     {step.code}
                   </code>
                 )}
@@ -86,13 +86,13 @@ export default function SetupPage() {
         <div className="flex gap-3">
           <button
             onClick={() => router.push('/articles')}
-            className="flex-1 py-3 text-sm text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+            className="flex-1 py-3 text-sm text-[var(--fg-secondary)] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl hover:bg-[var(--bg-app)] transition-colors"
           >
             稍后再说
           </button>
           <button
             onClick={() => router.push('/settings')}
-            className="flex-1 py-3 text-sm text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+            className="flex-1 py-3 text-sm text-white bg-[var(--accent)] rounded-xl hover:bg-[var(--accent-hover)] transition-colors flex items-center justify-center gap-2"
           >
             安装完成，去检测
             <ArrowRight size={15} />

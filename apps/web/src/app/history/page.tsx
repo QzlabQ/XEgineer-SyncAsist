@@ -135,12 +135,12 @@ export default function HistoryPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center gap-4">
+    <div className="min-h-screen bg-[var(--bg-app)]">
+      <header className="bg-[var(--bg-surface)] border-b border-[var(--border-default)] px-6 py-4 flex items-center gap-4">
         <button onClick={() => router.back()} className="p-1.5 text-gray-500 hover:bg-gray-100 rounded-lg">
           <ArrowLeft size={18} />
         </button>
-        <h1 className="text-xl font-semibold text-gray-900">发布历史</h1>
+        <h1 className="text-lg font-semibold text-[var(--fg-primary)] tracking-tight">发布历史</h1>
       </header>
 
       <main className="max-w-3xl mx-auto px-6 py-8">
@@ -174,7 +174,7 @@ export default function HistoryPage() {
         ) : items.length > 0 ? (
           <div className="space-y-3">
             {items.map(item => (
-              <article key={item.id} className="bg-white border border-gray-200 rounded-lg px-5 py-4">
+              <article key={item.id} className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-lg px-5 py-4 hover:border-[var(--border-hover)] transition-all duration-[160ms] ease-out">
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 mb-1">
@@ -243,7 +243,7 @@ function ScheduledPublishCard({
   const links = results.filter(result => result.url)
 
   return (
-    <article className="bg-white border border-gray-200 rounded-lg px-5 py-4">
+    <article className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-lg px-5 py-4 hover:border-[var(--border-hover)] transition-all duration-[160ms] ease-out">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2 mb-1">

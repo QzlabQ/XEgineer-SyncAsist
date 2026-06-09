@@ -28,10 +28,10 @@ export function EditorToolbar({ editor, onImageUpload }: EditorToolbarProps) {
       aria-pressed={active}
       disabled={disabled}
       onClick={onClick}
-      className={`w-8 h-8 inline-flex items-center justify-center rounded text-sm transition-colors ${
+      className={`w-8 h-8 inline-flex items-center justify-center rounded-md text-[13px] transition-all duration-[120ms] ease-out active:scale-90 ${
         active
-          ? 'bg-blue-100 text-blue-700'
-          : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+          ? 'bg-[var(--accent-soft)] text-[var(--accent)]'
+          : 'text-[var(--fg-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--fg-primary)]'
       } disabled:opacity-40 disabled:cursor-not-allowed`}
     >
       {icon}
@@ -58,14 +58,14 @@ export function EditorToolbar({ editor, onImageUpload }: EditorToolbarProps) {
       {btn(false, () => editor.chain().focus().undo().run(), <Undo size={sz} />, '撤销', !editor.can().undo())}
       {btn(false, () => editor.chain().focus().redo().run(), <Redo size={sz} />, '重做', !editor.can().redo())}
 
-      <div className="w-px h-5 bg-gray-200 mx-1" />
+      <div className="w-px h-5 bg-[var(--border-default)] mx-1" />
 
       {/* Headings */}
       {btn(editor.isActive('heading', { level: 1 }), () => editor.chain().focus().toggleHeading({ level: 1 }).run(), <Heading1 size={sz} />, 'H1')}
       {btn(editor.isActive('heading', { level: 2 }), () => editor.chain().focus().toggleHeading({ level: 2 }).run(), <Heading2 size={sz} />, 'H2')}
       {btn(editor.isActive('heading', { level: 3 }), () => editor.chain().focus().toggleHeading({ level: 3 }).run(), <Heading3 size={sz} />, 'H3')}
 
-      <div className="w-px h-5 bg-gray-200 mx-1" />
+      <div className="w-px h-5 bg-[var(--border-default)] mx-1" />
 
       {/* Inline marks */}
       {btn(editor.isActive('bold'), () => editor.chain().focus().toggleBold().run(), <Bold size={sz} />, '加粗')}
@@ -75,14 +75,14 @@ export function EditorToolbar({ editor, onImageUpload }: EditorToolbarProps) {
       {btn(editor.isActive('code'), () => editor.chain().focus().toggleCode().run(), <Code size={sz} />, '行内代码')}
       {btn(editor.isActive('link'), setLink, <Link2 size={sz} />, '链接')}
 
-      <div className="w-px h-5 bg-gray-200 mx-1" />
+      <div className="w-px h-5 bg-[var(--border-default)] mx-1" />
 
       {/* Lists */}
       {btn(editor.isActive('bulletList'), () => editor.chain().focus().toggleBulletList().run(), <List size={sz} />, '无序列表')}
       {btn(editor.isActive('orderedList'), () => editor.chain().focus().toggleOrderedList().run(), <ListOrdered size={sz} />, '有序列表')}
       {btn(editor.isActive('taskList'), () => editor.chain().focus().toggleTaskList().run(), <CheckSquare size={sz} />, '任务列表')}
 
-      <div className="w-px h-5 bg-gray-200 mx-1" />
+      <div className="w-px h-5 bg-[var(--border-default)] mx-1" />
 
       {/* Blocks */}
       {btn(editor.isActive('blockquote'), () => editor.chain().focus().toggleBlockquote().run(), <Quote size={sz} />, '引用')}
