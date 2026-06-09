@@ -34,6 +34,7 @@ interface PublishStore {
   loadConfigs(articleId: number): Promise<void>
   togglePlatform(id: string): void
   updateConfig(id: string, config: Partial<PlatformConfig>): void
+  applyConfigToAllPlatforms(config: Partial<PlatformConfig>): Promise<void>
   checkAuth(id: string): Promise<void>
   checkAllAuth(): Promise<void>
   publish(articleId: number, getPayload: (platformId: string) => Record<string, unknown>): Promise<void>
@@ -98,6 +99,29 @@ export const usePublishStore = create<PublishStore>((set, get) => ({
     const articleId = get().currentArticleId
     if (articleId && nextConfig) {
       void persistPlatformConfig(articleId, id, nextConfig)
+    }
+  },
+
+  async applyConfigToAllPlatforms(config) {
+    if (!get().platforms.length) {
+      get().initPlatforms()
+    }
+
+    const updates: Array<{ platform: string; config: PlatformConfig }> = []
+    set(s => ({
+      platforms: s.platforms.map(p => {
+        const supportedPatch = filterConfigPatchBySchema(p.schema, config)
+        if (!Object.keys(supportedPatch).length) return p
+
+        const nextConfig = { ...p.config, ...supportedPatch }
+        updates.push({ platform: p.id, config: nextConfig })
+        return { ...p, config: nextConfig }
+      }),
+    }))
+
+    const articleId = get().currentArticleId
+    if (articleId && updates.length) {
+      await persistPlatformConfigs(articleId, updates)
     }
   },
 
@@ -264,7 +288,30 @@ function createPlatformStates(previous: PlatformState[] = []): PlatformState[] {
   })
 }
 
+function filterConfigPatchBySchema(schema: MetaField[], patch: Partial<PlatformConfig>): Partial<PlatformConfig> {
+  const supportedKeys = new Set(schema.map(field => field.key))
+  const filtered: Partial<PlatformConfig> = {}
+
+  for (const [key, value] of Object.entries(patch)) {
+    if (supportedKeys.has(key)) filtered[key] = value
+  }
+
+  return filtered
+}
+
 async function persistPlatformConfig(articleId: number, platform: string, config: PlatformConfig) {
+  await upsertPlatformConfig(articleId, platform, config)
+  await syncIfAuthenticated()
+}
+
+async function persistPlatformConfigs(articleId: number, updates: Array<{ platform: string; config: PlatformConfig }>) {
+  await db.transaction('rw', db.platformConfigs, async () => {
+    await Promise.all(updates.map(update => upsertPlatformConfig(articleId, update.platform, update.config)))
+  })
+  await syncIfAuthenticated()
+}
+
+async function upsertPlatformConfig(articleId: number, platform: string, config: PlatformConfig) {
   const existing = await db.platformConfigs
     .where('[articleId+platform]')
     .equals([articleId, platform])
@@ -276,7 +323,6 @@ async function persistPlatformConfig(articleId: number, platform: string, config
   } else {
     await db.platformConfigs.add({ ...record, updatedAt: Date.now() })
   }
-  await syncIfAuthenticated()
 }
 
 async function recordPublishResult(

@@ -25,7 +25,7 @@ export default function EditorPage() {
   const params = useParams()
   const id = Number(params.id)
   const { current, loadArticle, updateTitle, updateContent, updateMeta, saveNow } = useArticleStore()
-  const { setShowPublishDialog } = usePublishStore()
+  const { setShowPublishDialog, applyConfigToAllPlatforms } = usePublishStore()
   const [showPreview, setShowPreview] = useState(true)
   const [showCollaboration, setShowCollaboration] = useState(false)
   const [editor, setEditor] = useState<Editor | null>(null)
@@ -149,6 +149,7 @@ export default function EditorPage() {
         canEdit={current.permissionRole !== 'VIEWER'}
         onTitleApply={updateTitle}
         onMetaApply={updateMeta}
+        onPlatformMetaApply={applyConfigToAllPlatforms}
       />
     </div>
   )

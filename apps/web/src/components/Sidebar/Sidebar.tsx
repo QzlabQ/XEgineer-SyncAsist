@@ -139,12 +139,12 @@ function ConfigField({
 
   if (field.type === 'select') {
     return (
-      <div>
+      <div className="min-w-0">
         <label className="text-xs text-gray-500 block mb-1">{label}</label>
         <select
           value={typeof value === 'string' ? value : ''}
           onChange={e => onChange({ [field.key]: e.target.value })}
-          className="w-full text-xs border border-gray-200 rounded px-2 py-1 bg-white focus:outline-none focus:border-blue-400"
+          className="block w-full min-w-0 text-xs border border-gray-200 rounded px-2 py-1 bg-white focus:outline-none focus:border-blue-400"
         >
           <option value="">请选择</option>
           {(field.options ?? []).map(option => (
@@ -157,7 +157,7 @@ function ConfigField({
 
   if (field.type === 'tags') {
     return (
-      <div>
+      <div className="min-w-0">
         <label className="text-xs text-gray-500 block mb-1">{label}</label>
         <input
           type="text"
@@ -166,7 +166,7 @@ function ConfigField({
           onChange={e => onChange({
             [field.key]: e.target.value.split(',').map(t => t.trim()).filter(Boolean),
           })}
-          className="w-full text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:border-blue-400"
+          className="block w-full min-w-0 text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:border-blue-400"
         />
       </div>
     )
@@ -174,14 +174,14 @@ function ConfigField({
 
   if (field.type === 'textarea') {
     return (
-      <div>
+      <div className="min-w-0">
         <label className="text-xs text-gray-500 block mb-1">{label}</label>
         <textarea
           rows={3}
           placeholder={field.key === 'summary' && autoSummary ? `自动摘要：${autoSummary}` : field.placeholder}
           value={typeof value === 'string' ? value : ''}
           onChange={e => onChange({ [field.key]: e.target.value })}
-          className="w-full text-xs border border-gray-200 rounded px-2 py-1 resize-none focus:outline-none focus:border-blue-400"
+          className="block w-full min-w-0 text-xs border border-gray-200 rounded px-2 py-1 resize-none focus:outline-none focus:border-blue-400"
         />
       </div>
     )
@@ -189,6 +189,7 @@ function ConfigField({
 
   if (field.type === 'image') {
     const imageValue = typeof value === 'string' ? value : ''
+    const isDataImage = imageValue.startsWith('data:image/')
     const setImageValue = (src?: string) => {
       const patch: Partial<PlatformConfig> = { [field.key]: src }
       if (field.key === 'cover') {
@@ -198,7 +199,7 @@ function ConfigField({
     }
 
     return (
-      <div>
+      <div className="min-w-0">
         <div className="flex items-center justify-between mb-1">
           <label className="text-xs text-gray-500">{label}</label>
           {imageValue && (
@@ -215,14 +216,23 @@ function ConfigField({
         {imageValue && (
           <img src={imageValue} alt="" className="w-full h-20 object-cover rounded border border-gray-200 mb-1" />
         )}
-        <div className="flex items-center gap-1">
-          <input
-            type="text"
-            placeholder="图片 URL"
-            value={imageValue}
-            onChange={e => setImageValue(e.target.value)}
-            className="min-w-0 flex-1 text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:border-blue-400"
-          />
+        <div className="flex min-w-0 items-center gap-1">
+          {isDataImage ? (
+            <div
+              className="min-w-0 flex-1 truncate rounded border border-gray-200 bg-white px-2 py-1 text-xs text-gray-500"
+              title="本地 base64 图片已设置"
+            >
+              本地图片已设置（{formatImageSize(imageValue)}）
+            </div>
+          ) : (
+            <input
+              type="text"
+              placeholder="图片 URL"
+              value={imageValue}
+              onChange={e => setImageValue(e.target.value)}
+              className="min-w-0 flex-1 text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:border-blue-400"
+            />
+          )}
           <label className="p-1.5 text-gray-500 border border-gray-200 rounded cursor-pointer hover:bg-gray-100" title="上传图片">
             <Upload size={13} />
             <input
@@ -249,7 +259,7 @@ function ConfigField({
           <div className="flex flex-wrap gap-1 mt-1">
             {images.slice(0, 6).map((src, index) => (
               <button
-                key={`${src}-${index}`}
+                key={`${index}-${src.length}-${src.slice(0, 24)}`}
                 type="button"
                 onClick={() => setImageValue(src)}
                 className={`w-8 h-8 rounded border overflow-hidden ${imageValue === src ? 'border-blue-500 ring-1 ring-blue-500' : 'border-gray-200'}`}
@@ -265,15 +275,23 @@ function ConfigField({
   }
 
   return (
-    <div>
+    <div className="min-w-0">
       <label className="text-xs text-gray-500 block mb-1">{label}</label>
       <input
         type="text"
         placeholder={field.placeholder}
         value={typeof value === 'string' ? value : ''}
         onChange={e => onChange({ [field.key]: e.target.value })}
-        className="w-full text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:border-blue-400"
+        className="block w-full min-w-0 text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:border-blue-400"
       />
     </div>
   )
+}
+
+function formatImageSize(src: string): string {
+  const base64 = src.includes(',') ? src.split(',')[1] : src
+  const bytes = Math.ceil(base64.length * 3 / 4)
+  if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`
+  if (bytes >= 1024) return `${Math.ceil(bytes / 1024)} KB`
+  return `${bytes} B`
 }

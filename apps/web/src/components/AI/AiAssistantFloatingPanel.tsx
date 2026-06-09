@@ -30,6 +30,7 @@ interface AiAssistantFloatingPanelProps {
   canEdit: boolean
   onTitleApply: (title: string) => void
   onMetaApply: (patch: Partial<Pick<ArticleRecord, 'cover' | 'summary' | 'tags'>>) => void
+  onPlatformMetaApply: (patch: Partial<Pick<ArticleRecord, 'cover' | 'summary' | 'tags'>>) => Promise<void>
 }
 
 interface PendingWriteResult {
@@ -65,6 +66,7 @@ export function AiAssistantFloatingPanel({
   canEdit,
   onTitleApply,
   onMetaApply,
+  onPlatformMetaApply,
 }: AiAssistantFloatingPanelProps) {
   const [open, setOpen] = useState(false)
   const [tab, setTab] = useState<PanelTab>('write')
@@ -212,6 +214,21 @@ export function AiAssistantFloatingPanel({
     editor.chain().focus().setTextSelection(pos).insertContent({ type: 'image', attrs: { src: image.dataUrl } }).run()
   }
 
+  async function applyMetaPatch(
+    patch: Partial<Pick<ArticleRecord, 'cover' | 'summary' | 'tags'>>,
+    errorTarget: PanelTab
+  ) {
+    if (!canEdit) return
+    onMetaApply(patch)
+    try {
+      await onPlatformMetaApply(patch)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      if (errorTarget === 'image') setImageError(message)
+      else setWriteError(message)
+    }
+  }
+
   async function copyWriteResult(value: string) {
     await navigator.clipboard?.writeText(value)
     setWriteCopied(true)
@@ -339,7 +356,7 @@ export function AiAssistantFloatingPanel({
                   {renderWriteResult(writePending.result, writePending.kind, {
                     canEdit,
                     onTitleApply,
-                    onMetaApply,
+                    onMetaApply: patch => void applyMetaPatch(patch, 'write'),
                   })}
                 </div>
                 {(writePending.kind === 'text' || writePending.kind === 'chat') && (
@@ -423,7 +440,7 @@ export function AiAssistantFloatingPanel({
                 <div className="grid grid-cols-2 gap-2 border-t border-gray-100 px-3 py-2">
                   <button
                     type="button"
-                    onClick={() => onMetaApply({ cover: imagePending.image.dataUrl })}
+                    onClick={() => void applyMetaPatch({ cover: imagePending.image.dataUrl }, 'image')}
                     disabled={!canEdit}
                     className="rounded-lg bg-blue-600 px-3 py-2 text-xs text-white hover:bg-blue-700 disabled:opacity-50"
                   >
