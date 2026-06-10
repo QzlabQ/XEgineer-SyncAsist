@@ -16,6 +16,9 @@
     "http://localhost/*",
     "http://127.0.0.1/*",
     "http://10.135.224.249/*",
+    "http://sa.matrixlabs.cn/*",
+    "https://sa.matrixlabs.cn/*",
+    "http://140.143.183.163:*/*",
     "https://*.zhihu.com/*",
     "https://*.bilibili.com/*",
     "https://*.juejin.cn/*",
@@ -34,7 +37,14 @@
   },
   "content_scripts": [
     {
-      "matches": ["http://localhost/*", "http://127.0.0.1/*", "http://10.135.224.249/*"],
+      "matches": [
+        "http://localhost/*",
+        "http://127.0.0.1/*",
+        "http://10.135.224.249/*",
+        "http://sa.matrixlabs.cn/*",
+        "https://sa.matrixlabs.cn/*",
+        "http://140.143.183.163:*/*"
+      ],
       "js": ["src/bridge/content-script.ts"],
       "run_at": "document_start"
     }
