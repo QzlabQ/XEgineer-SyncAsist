@@ -49,18 +49,8 @@ export const HtmlBlock = Node.create({
     return ({ node }) => {
       const dom = document.createElement('div')
       dom.setAttribute('data-html-block', '')
-      dom.style.cssText = 'position: relative; margin: 24px 0; background: #ffffff; border: 1px solid #e2e5e9; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.04);'
-
-      const toolbar = document.createElement('div')
-      toolbar.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: #f8f9fa; border-bottom: 1px solid #eef0f2;'
-      toolbar.innerHTML = '<span style="font-size:12px;color:#6b7280;font-weight:500;">📄 渲染块</span><span style="font-size:11px;color:#9ca3af;">内容已内联渲染 · 可拖拽移动</span>'
-
-      const content = document.createElement('div')
-      content.style.cssText = 'padding: 0;'
-      content.innerHTML = node.attrs.html as string || ''
-
-      dom.appendChild(toolbar)
-      dom.appendChild(content)
+      dom.style.cssText = 'margin: 24px 0; background: #ffffff; border: 1px solid #e2e5e9; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.04);'
+      dom.innerHTML = node.attrs.html as string || ''
       return { dom }
     }
   },
