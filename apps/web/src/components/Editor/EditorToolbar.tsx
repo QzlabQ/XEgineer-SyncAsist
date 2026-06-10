@@ -10,9 +10,11 @@ import {
 interface EditorToolbarProps {
   editor: Editor
   onImageUpload: () => void
+  htmlPasteEnabled: boolean
+  onToggleHtmlPaste: () => void
 }
 
-export function EditorToolbar({ editor, onImageUpload }: EditorToolbarProps) {
+export function EditorToolbar({ editor, onImageUpload, htmlPasteEnabled, onToggleHtmlPaste }: EditorToolbarProps) {
   const btn = (
     active: boolean,
     onClick: () => void,
@@ -90,6 +92,15 @@ export function EditorToolbar({ editor, onImageUpload }: EditorToolbarProps) {
       {btn(false, () => editor.chain().focus().setHorizontalRule().run(), <Minus size={sz} />, '分割线')}
       {btn(false, insertTable, <Table size={sz} />, '表格')}
       {btn(false, onImageUpload, <Image size={sz} />, '插入图片')}
+
+      <div className="w-px h-5 bg-[var(--border-default)] mx-1" />
+
+      {/* HTML paste mode toggle */}
+      <label className="switch" title={htmlPasteEnabled ? 'HTML渲染模式：开' : 'HTML渲染模式：关'}>
+        <input type="checkbox" checked={htmlPasteEnabled} onChange={onToggleHtmlPaste} />
+        <span className="slider" />
+      </label>
+      <span className="text-[11px] text-[var(--fg-tertiary)] select-none ml-0.5">H5</span>
     </div>
   )
 }

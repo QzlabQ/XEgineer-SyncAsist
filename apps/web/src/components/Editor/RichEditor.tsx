@@ -22,7 +22,7 @@ import FontFamily from '@tiptap/extension-font-family'
 import { Bold, Italic, Underline as UnderlineIcon, Strikethrough, Code, Link2, Highlighter } from 'lucide-react'
 import type { EditorView } from '@tiptap/pm/view'
 import { EditorToolbar } from './EditorToolbar'
-import { HtmlBlock, shouldPasteAsHtmlBlock } from '@/lib/tiptap-html-block'
+import { HtmlBlock } from '@/lib/tiptap-html-block'
 import type { TextSelectionSnapshot } from '@/lib/tiptap-text'
 
 interface SlashState {
@@ -116,6 +116,7 @@ export function RichEditor({ content, onChange, editable = true, onEditorReady, 
   const [selectionToolbar, setSelectionToolbar] = useState<FloatingToolbarState | null>(null)
   const slashStateRef = useRef<SlashState | null>(null)
   const overlayFrameRef = useRef<number | null>(null)
+  const [htmlPasteEnabled, setHtmlPasteEnabled] = useState(false)
 
   const setSlashMenu = useCallback((state: SlashState | null) => {
     const previous = slashStateRef.current
@@ -303,21 +304,15 @@ export function RichEditor({ content, onChange, editable = true, onEditorReady, 
 
   return (
     <div className="flex flex-col h-full overflow-x-hidden" onKeyDownCapture={handleEditorKeyDown} onPasteCapture={(e) => {
+      if (!htmlPasteEnabled || !editor) return
       const html = e.clipboardData.getData('text/html')
-      if (!html || !editor) return
-      console.log('[Paste Capture] html长度:', html.length, 'shouldBlock:', shouldPasteAsHtmlBlock(html))
-      if (!shouldPasteAsHtmlBlock(html)) return
+      if (!html) return
       e.preventDefault()
       e.stopPropagation()
       const node = editor.view.state.schema.nodes.htmlBlock?.create({ html })
-      if (node) {
-        editor.view.dispatch(editor.view.state.tr.replaceSelectionWith(node))
-        console.log('[Paste Capture] ✅ HtmlBlock inserted')
-      } else {
-        console.log('[Paste Capture] htmlBlock schema missing. Nodes:', Object.keys(editor.view.state.schema.nodes))
-      }
+      if (node) editor.view.dispatch(editor.view.state.tr.replaceSelectionWith(node))
     }}>
-      <EditorToolbar editor={editor} onImageUpload={handleImageUpload} />
+      <EditorToolbar editor={editor} onImageUpload={handleImageUpload} htmlPasteEnabled={htmlPasteEnabled} onToggleHtmlPaste={() => setHtmlPasteEnabled(v => !v)} />
 
       {selectionToolbar && (
         <div

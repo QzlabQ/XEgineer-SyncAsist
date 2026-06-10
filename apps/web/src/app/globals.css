@@ -315,3 +315,31 @@ input[type="checkbox"]:not(.tiptap-editor *) {
 [data-html-block] * { max-width: 100%; word-break: break-word; overflow-wrap: break-word; }
 [data-html-block] img, [data-html-block] video, [data-html-block] table { max-width: 100%; height: auto; }
 
+
+/* ===== HTML Paste Toggle Switch ===== */
+.switch {
+  font-size: 13px;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 2.6em;
+  height: 1.5em;
+  flex-shrink: 0;
+}
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider {
+  position: absolute; cursor: pointer; inset: 0;
+  background-color: rgb(182, 182, 182);
+  transition: .3s ease;
+  border-radius: 10px;
+}
+.slider:before {
+  position: absolute; content: "";
+  height: 1.1em; width: 1.1em;
+  border-radius: 7px;
+  left: 0.2em; bottom: 0.2em;
+  background-color: white;
+  transition: .3s ease;
+}
+.switch input:checked + .slider { background-color: var(--accent); }
+.switch input:checked + .slider:before { transform: translateX(1.1em); }
