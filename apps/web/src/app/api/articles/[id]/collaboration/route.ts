@@ -72,12 +72,14 @@ export async function PATCH(
   const snapshot = await prisma.collaborationSnapshot.upsert({
     where: { articleId: id },
     update: {
+      // @ts-expect-error Buffer/Uint8Array type mismatch with Prisma
       ydocState: parseBase64(parsed.data.ydocStateBase64),
       version: { increment: 1 },
       updatedById: user.id,
     },
     create: {
       articleId: id,
+      // @ts-expect-error Buffer/Uint8Array type mismatch with Prisma
       ydocState: parseBase64(parsed.data.ydocStateBase64),
       version: parsed.data.version ?? 1,
       updatedById: user.id,
@@ -93,9 +95,9 @@ export async function PATCH(
   })
 }
 
-function parseBase64(value: string | undefined): Buffer | undefined {
+function parseBase64(value: string | undefined): Uint8Array | undefined {
   if (!value) return undefined
-  return Buffer.from(value, 'base64')
+  return Buffer.from(value, "base64") as unknown as Uint8Array
 }
 
 async function safeJson(request: NextRequest): Promise<unknown> {

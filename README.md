@@ -75,8 +75,15 @@ yarn workspace @xegineer/web prisma db push
 
 ### 启动 Web App
 
+**开发模式**（热更新，适合开发调试）：
 ```bash
 yarn workspace @xegineer/web dev
+```
+
+**生产模式**（性能优化，内存占用 ~150MB，适合长期运行）：
+```bash
+yarn workspace @xegineer/web build
+yarn workspace @xegineer/web start
 ```
 
 访问 [http://localhost:3210](http://localhost:3210)
