@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Loader2, Plus, Trash2, Users } from 'lucide-react'
+import { ArrowLeft, Plus, Trash2, Users } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { InlineSpinner } from '@/components/ui/inline-spinner'
 import {
   addTeamMember,
   createTeam,
@@ -113,7 +114,7 @@ export default function TeamsPage() {
           <div className="space-y-2">
             {loading && (
               <div className="flex items-center gap-2 text-sm text-[var(--fg-tertiary)]">
-                <Loader2 size={14} className="animate-spin" />
+                <InlineSpinner size={14} />
                 加载中
               </div>
             )}

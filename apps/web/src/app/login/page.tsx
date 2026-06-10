@@ -3,7 +3,8 @@
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { FormEvent, Suspense, useState } from 'react'
-import { Loader2, LogIn } from 'lucide-react'
+import { LogIn } from 'lucide-react'
+import { InlineSpinner } from '@/components/ui/inline-spinner'
 import { useAuthStore } from '@/stores/auth'
 import { useArticleStore } from '@/stores/article'
 
@@ -51,7 +52,7 @@ function LoginForm() {
           disabled={loading}
           className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white hover:bg-[var(--accent-hover)] disabled:opacity-50"
         >
-          {loading ? <Loader2 size={15} className="animate-spin" /> : <LogIn size={15} />}
+          {loading ? <InlineSpinner size={15} /> : <LogIn size={15} />}
           登录
         </button>
       </form>

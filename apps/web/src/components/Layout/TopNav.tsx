@@ -2,10 +2,11 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { PenLine, List, Settings, Save, Loader2, Send, History, Users } from 'lucide-react'
+import { PenLine, List, Settings, Save, Send, History, Users } from 'lucide-react'
 import { useArticleStore } from '@/stores/article'
 import { usePublishStore } from '@/stores/publish'
 import { AccountMenu } from '@/components/Auth/AccountMenu'
+import { InlineSpinner } from '@/components/ui/inline-spinner'
 
 export function TopNav() {
   const router = useRouter()
@@ -44,7 +45,7 @@ export function TopNav() {
         <AccountMenu />
 
         <div className="flex items-center gap-1.5 text-xs text-[var(--fg-tertiary)] min-w-[64px] justify-end">
-          {saveStatus === 'saving' && <><Loader2 size={12} className="animate-spin" /> 保存中...</>}
+          {saveStatus === 'saving' && <><InlineSpinner size={12} /> 保存中...</>}
           {saveStatus === 'saved' && <><Save size={12} /> 已保存</>}
           {saveStatus === 'error' && <span className="text-[var(--error)]">保存失败</span>}
         </div>

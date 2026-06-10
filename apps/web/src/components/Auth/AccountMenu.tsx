@@ -2,9 +2,10 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Cloud, Info, Loader2, LogIn, LogOut, RefreshCw, UserCircle, X } from 'lucide-react'
+import { Cloud, Info, LogIn, LogOut, RefreshCw, UserCircle, X } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth'
 import { useArticleStore } from '@/stores/article'
+import { InlineSpinner } from '@/components/ui/inline-spinner'
 
 export function AccountMenu() {
   const router = useRouter()
@@ -15,7 +16,7 @@ export function AccountMenu() {
   if (status === 'loading') {
     return (
       <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-[var(--fg-tertiary)]">
-        <Loader2 size={13} className="animate-spin" />
+        <InlineSpinner size={13} />
         账号加载中
       </span>
     )
@@ -47,7 +48,7 @@ export function AccountMenu() {
         className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-[var(--accent-text)] bg-[var(--accent-soft)] hover:bg-[var(--accent)]/10 rounded-md disabled:opacity-50 transition-all duration-[120ms] ease-out active:scale-[0.97]"
         title={syncError || '同步云端数据'}
       >
-        {syncStatus === 'syncing' ? <Loader2 size={13} className="animate-spin" /> : <Cloud size={13} />}
+        {syncStatus === 'syncing' ? <InlineSpinner size={13} /> : <Cloud size={13} />}
         {syncStatus === 'error' ? '同步失败' : '云同步'}
       </button>
       {(syncStatus === 'error' || syncDebug) && (

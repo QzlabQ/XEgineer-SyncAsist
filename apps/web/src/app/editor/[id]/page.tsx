@@ -4,10 +4,11 @@ import { useEffect, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import type { Editor } from '@tiptap/core'
-import { Users, Loader2 } from 'lucide-react'
+import { Users } from 'lucide-react'
 import { useArticleStore } from '@/stores/article'
 import { usePublishStore } from '@/stores/publish'
 import { DotmSquare3 } from '@/components/ui/dotm-square-3'
+import { InlineSpinner } from '@/components/ui/inline-spinner'
 import { TopNav } from '@/components/Layout/TopNav'
 import { Sidebar } from '@/components/Sidebar/Sidebar'
 import { PreviewPanel } from '@/components/Preview/PreviewPanel'
@@ -19,7 +20,7 @@ import type { TextSelectionSnapshot } from '@/lib/tiptap-text'
 // Tiptap must be client-only
 const RichEditor = dynamic(() => import('@/components/Editor/RichEditor').then(m => ({ default: m.RichEditor })), {
   ssr: false,
-  loading: () => <div className="flex-1 flex flex-col items-center justify-center gap-3 text-gray-400"><Loader2 size={24} className="animate-spin text-[var(--accent)]" /><span className="text-sm">加载编辑器...</span></div>,
+  loading: () => <div className="flex-1 flex flex-col items-center justify-center gap-3 text-gray-400"><InlineSpinner size={24} /><span className="text-sm">加载编辑器...</span></div>,
 })
 
 export default function EditorPage() {

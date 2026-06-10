@@ -1,8 +1,9 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { AlertCircle, CheckCircle, XCircle, Loader2, ExternalLink, RotateCcw, CalendarClock } from 'lucide-react'
+import { AlertCircle, CheckCircle, XCircle, ExternalLink, RotateCcw, CalendarClock } from 'lucide-react'
 import { usePublishStore } from '@/stores/publish'
+import { InlineSpinner } from '@/components/ui/inline-spinner'
 import { useArticleStore } from '@/stores/article'
 import { db } from '@/lib/db'
 import { getExtensionBridge } from '@/lib/extension-bridge'
@@ -126,7 +127,7 @@ export function PublishDialog() {
                     )}
                   </div>
                   <div className="flex items-center gap-2">
-                    {p.publishStatus === 'pending' && <Loader2 size={16} className="animate-spin text-[var(--accent)]" />}
+                    {p.publishStatus === 'pending' && <InlineSpinner size={16} />}
                     {p.publishStatus === 'success' && (
                       <div className="flex items-center gap-1">
                         <CheckCircle size={16} className="text-green-500" />
@@ -213,7 +214,7 @@ export function PublishDialog() {
                 disabled={scheduling || isPublishing || !scheduledAtValue}
                 className="px-4 py-2 text-sm text-[var(--accent-text)] bg-[var(--accent-soft)] rounded-lg hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
               >
-                {scheduling ? <Loader2 size={14} className="animate-spin" /> : <CalendarClock size={14} />}
+                {scheduling ? <InlineSpinner size={14} /> : <CalendarClock size={14} />}
                 创建草稿并定时
               </button>
               <button
@@ -221,7 +222,7 @@ export function PublishDialog() {
                 disabled={isPublishing || scheduling}
                 className="px-4 py-2 text-[13px] font-medium bg-[var(--accent)] text-white rounded-md hover:bg-[var(--accent-hover)] active:scale-[0.97] disabled:opacity-40 transition-all duration-[120ms] ease-out disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
               >
-                {isPublishing && <Loader2 size={14} className="animate-spin" />}
+                {isPublishing && <InlineSpinner size={14} />}
                 确认发布
               </button>
             </>

@@ -3,8 +3,9 @@
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { FormEvent, Suspense, useState } from 'react'
-import { Loader2, KeyRound } from 'lucide-react'
+import { KeyRound } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth'
+import { InlineSpinner } from '@/components/ui/inline-spinner'
 
 export default function ResetPasswordPage() {
   return (
@@ -63,7 +64,7 @@ function ResetPasswordForm() {
               disabled={loading || !token}
               className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white hover:bg-[var(--accent-hover)] disabled:opacity-50"
             >
-              {loading ? <Loader2 size={15} className="animate-spin" /> : <KeyRound size={15} />}
+              {loading ? <InlineSpinner size={15} /> : <KeyRound size={15} />}
               更新密码
             </button>
           </form>

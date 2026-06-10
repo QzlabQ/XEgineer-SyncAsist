@@ -4,9 +4,10 @@ import { useMemo, useState } from 'react'
 import type { Editor } from '@tiptap/core'
 import {
   Bot, Check, Clipboard, Download, FileText, Hash, Heading, Image as ImageIcon, ImagePlus,
-  Loader2, MessageSquare, Minimize2, Paintbrush, PenLine, Plus, Send, Sparkles, Wand2,
+  MessageSquare, Minimize2, Paintbrush, PenLine, Plus, Send, Sparkles, Wand2,
 } from 'lucide-react'
 import { DotmSquare3 } from '@/components/ui/dotm-square-3'
+import { InlineSpinner } from '@/components/ui/inline-spinner'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { ArticleRecord } from '@/lib/db'
 import {
@@ -334,7 +335,7 @@ export function AiAssistantFloatingPanel({
                   disabled={Boolean(writeLoadingMode)}
                   className="inline-flex h-9 items-center justify-center gap-1 rounded-lg border border-gray-200 text-xs text-gray-700 hover:border-[var(--accent)]/20 hover:bg-[var(--accent-soft)] hover:text-[var(--accent-text)] disabled:opacity-50"
                 >
-                  {writeLoadingMode === action.mode ? <Loader2 size={14} className="animate-spin" /> : action.icon}
+                  {writeLoadingMode === action.mode ? <InlineSpinner size={14} /> : action.icon}
                   {action.label}
                 </button>
               ))}
@@ -420,7 +421,7 @@ export function AiAssistantFloatingPanel({
                   disabled={Boolean(imageLoadingMode)}
                   className="inline-flex h-9 items-center justify-center gap-1 rounded-lg border border-gray-200 text-xs text-gray-700 hover:border-[var(--accent)]/20 hover:bg-[var(--accent-soft)] hover:text-[var(--accent-text)] disabled:opacity-50"
                 >
-                  {imageLoadingMode === action.mode ? <Loader2 size={14} className="animate-spin" /> : action.icon}
+                  {imageLoadingMode === action.mode ? <InlineSpinner size={14} /> : action.icon}
                   {action.label}
                 </button>
               ))}
@@ -552,7 +553,7 @@ function ChatBox({
           className="inline-flex w-10 items-center justify-center rounded-lg bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)] disabled:opacity-50"
           title="发送"
         >
-          {loading ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
+          {loading ? <InlineSpinner size={15} /> : <Send size={15} />}
         </button>
       </div>
       {loading && (

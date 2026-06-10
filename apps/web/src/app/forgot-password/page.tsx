@@ -2,8 +2,9 @@
 
 import Link from 'next/link'
 import { FormEvent, useState } from 'react'
-import { Loader2, Mail } from 'lucide-react'
+import { Mail } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth'
+import { InlineSpinner } from '@/components/ui/inline-spinner'
 
 export default function ForgotPasswordPage() {
   const forgotPassword = useAuthStore(state => state.forgotPassword)
@@ -49,7 +50,7 @@ export default function ForgotPasswordPage() {
               disabled={loading}
               className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white hover:bg-[var(--accent-hover)] disabled:opacity-50"
             >
-              {loading ? <Loader2 size={15} className="animate-spin" /> : <Mail size={15} />}
+              {loading ? <InlineSpinner size={15} /> : <Mail size={15} />}
               发送重置链接
             </button>
           </form>

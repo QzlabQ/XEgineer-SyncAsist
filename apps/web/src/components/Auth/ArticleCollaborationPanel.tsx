@@ -1,9 +1,10 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { Check, Copy, Link2, Loader2, Trash2, Users, X } from 'lucide-react'
+import { Check, Copy, Link2, Trash2, Users, X } from 'lucide-react'
 import type { ArticleRecord } from '@/lib/db'
 import { db } from '@/lib/db'
+import { InlineSpinner } from '@/components/ui/inline-spinner'
 import {
   addArticleCollaborator,
   assignArticleTeam,
@@ -198,7 +199,7 @@ export function ArticleCollaborationPanel({ article, open, onClose }: ArticleCol
           <section className="space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-medium text-gray-900">协作者</h3>
-              {loading && <Loader2 size={14} className="animate-spin text-gray-400" />}
+              {loading && <InlineSpinner size={14} />}
             </div>
 
             {canManage && (

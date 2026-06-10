@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowRight, Loader2, LogIn, Share2 } from 'lucide-react'
+import { ArrowRight, LogIn, Share2 } from 'lucide-react'
 import { acceptShareLink, getSharePreview, type CollaborationRole } from '@/lib/collaboration-api'
 import { useAuthStore } from '@/stores/auth'
+import { InlineSpinner } from '@/components/ui/inline-spinner'
 
 interface SharePreview {
   role: CollaborationRole
@@ -67,7 +68,7 @@ export default function SharePage() {
 
         {loading ? (
           <div className="flex items-center gap-2 py-10 text-sm text-gray-400">
-            <Loader2 size={15} className="animate-spin" />
+            <InlineSpinner size={15} />
             加载中
           </div>
         ) : preview ? (
@@ -116,7 +117,7 @@ export default function SharePage() {
               disabled={!preview || accepting}
               className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-[var(--accent)] px-4 py-2.5 text-sm text-white hover:bg-[var(--accent-hover)] disabled:opacity-50"
             >
-              {accepting ? <Loader2 size={15} className="animate-spin" /> : <ArrowRight size={15} />}
+              {accepting ? <InlineSpinner size={15} /> : <ArrowRight size={15} />}
               接受并打开
             </button>
           )}
