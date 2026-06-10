@@ -62,7 +62,7 @@ export async function syncLocalToCloud(report?: SyncDebugReporter, cacheOwnerId?
     articleId: row.articleId,
     articleRemoteId: articles.find(article => article.id === row.articleId)?.remoteId,
     platform: row.platform,
-    config: parseConfig(row.config),
+    config: stripDataUris(parseConfig(row.config)),
   }))
 
   const historyPayload = publishHistory
@@ -380,8 +380,8 @@ function toArticlePayload(article: ArticleRecord) {
     localId: article.id,
     remoteId: article.remoteId,
     title: article.title,
-    tiptapJSON: article.tiptapJSON,
-    cover: article.cover,
+    tiptapJSON: stripDataUris(article.tiptapJSON),
+    cover: stripDataUri(article.cover),
     summary: article.summary,
     tags: article.tags,
     categories: article.categories,
@@ -475,4 +475,27 @@ function samplePublishHistory(history: {
     isDraftType: typeof history.isDraft,
     successType: typeof history.success,
   }
+}
+
+// ===== Data URI stripping (dramatically reduces sync payload size) =====
+
+const DATA_URI_REGEX = /data:[^;"]+;base64,[A-Za-z0-9+/=]+/g
+const DATA_URI_PLACEHOLDER = '[data-uri]'
+
+function stripDataUri(value: string | undefined | null): string | undefined | null {
+  if (!value) return value
+  return value.replace(DATA_URI_REGEX, DATA_URI_PLACEHOLDER)
+}
+
+function stripDataUris(value: unknown): unknown {
+  if (typeof value === 'string') return stripDataUri(value)
+  if (Array.isArray(value)) return value.map(stripDataUris)
+  if (value && typeof value === 'object') {
+    const result: Record<string, unknown> = {}
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      result[k] = stripDataUris(v)
+    }
+    return result
+  }
+  return value
 }
